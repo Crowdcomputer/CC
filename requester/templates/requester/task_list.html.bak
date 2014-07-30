@@ -1,0 +1,133 @@
+{% extends 'requester/base.html' %}
+{% load static from staticfiles %}
+{% load myfilters %}
+{% load humanize %}
+
+{% block pagetitle %} Profile {% endblock %}
+
+{% block container %}
+<style>
+	h1 .btn-group {
+		display: inline-block;
+	}
+</style>
+<h1>Task List
+<div class="btn-group">
+	{%if process.is_stopped %}
+	<a href='{% url r-process-start process.id %}' title='run this process' class='tip btn btn-success'><i class='icon-play'></i></a>
+	{%endif%}
+	{%if process.is_inprocess %}
+	<a href='{% url r-process-stop process.id %}' title='stop this process' class='tip btn btn-danger'><i class='icon-stop'></i></a>
+	{%endif%}
+	<a href="{% url r-task-create process.id %}" title='add new task to this process'  class='tip btn'><i class="icon-plus"></i></a>
+
+</div></h1>
+
+<div class='row'>
+
+	<script>
+		//Here we prepare a list of tasks to be visualised later using raphaelJs
+		var task_list = new Array();
+		function Task(id, title, inputs, status, shape_text, shape_rect, number) {
+			this.id = id;
+			this.title = title;
+			this.status = status;
+			this.number = number
+			this.shape_text = shape_text;
+			this.shape_rect = shape_rect;
+			this.inputs = inputs;
+		}
+
+		var i = 0;
+		{% for task in task_list %}
+		i++;
+		var j = 0;
+		var inputs = new Array();
+		{% for input_task in task.input_task.all %}
+		inputs.push({{input_task.id}});
+		{% endfor %}
+		t=new Task({{task.id}},
+		'{{task.title}}', inputs, '{{task.status}}');
+		if (t.status != 'DL')
+			task_list.push(t);
+
+		{% endfor %}
+
+	</script>
+
+	<table class="table table-hover ">
+		<thead>
+			<th>Title</th>
+			<th>Description</th>
+			<th>Input</th>
+			<th>deadline</th>
+			<th>responses</th>
+			<th>status</th>
+			<th></th>
+		</thead>
+		{% for task in task_list  %}
+		<tr class="{{task.status|to_tr_class}}">
+			<td>{{task.title}}</td>
+			<td>{{task.description}}</td>
+
+			<td> {% if task.input_task.all.count > 0 %} <em>{{ task.get_split_display }}</em></br> {% for t_input in task.input_task.all %}
+			[{{ t_input.id }}] {{t_input.title}} </br>
+			{% endfor %} <em>{{ task.input_task_field }}</em> {% endif %} </td>
+			<td>{{task.date_deadline|naturaltime}}
+			<br/>
+			({{task.date_deadline}})</td>
+
+			<td><!--  {{task.responses_given}} of {{task.responses_required}}--><a href='{% url r-taskinstances process_id=task.process.id, task_id=task.id %}'>
+			<div class="progress">
+				{% if task.instances_amount > 0 %}
+				<div class="bar bar-success" style="width: {{task.instances_given|percentage:task.instances_amount }}%;">
+					{{task.instances_given}}
+				</div>
+				<div class="bar bar-danger" style="width: {{task.instances_given|c_percentage:task.instances_amount}}%;">
+					{{task.instances_amount|sub:task.instances_given}}
+				{%endif%}
+				</div>
+			</div> </a></td>
+			<td>{{task.get_status_display}}</td>
+			<td>
+			<div class="btn-group">
+
+				{%if task.is_stopped %}
+
+				<!--a href='{% url r-task-start process_id=task.process.id, task_id=task.id %}' class='btn btn-success'><i class='icon-play'></i></a-->
+				<a href='{% url r-task-update process_id=task.process.id, pk=task.id %}' class='btn tip' title='edit the task'><i class='icon-pencil'></i></a>
+				<!-- <a href='/task/{{task.id}}/duplicate' class='btn'><i class='icon-resize-full'></i></a> -->
+				<a href='{% url r-task-delete process_id=task.process.id, task_id=task.id %}' class='btn btn-danger tip' title='delete the task'><i class='icon-trash'></i></a>
+				{%endif%}
+				{%if task.is_inprocess %}
+				<a href='{% url r-task-finish process_id=task.process.id, task_id=task.id %}' title='finish the task manually' class='btn btn-success tip'><i class='icon-ok'></i></a>
+				{%endif%}
+				{% if  task.is_finished %}
+				<a href='{% url r-task-delete process_id=task.process.id, task_id=task.id %}' class='btn btn-danger tip' title='delete the task'><i class='icon-trash'></i></a>
+				{%endif%}
+				<a target='_blank' href='{% url e-execute uuid=task.uuid %}' class='btn tip' title='go to the execution page'><i class='icon-globe'></i></a>
+
+			</div></td>
+
+		</tr>
+		{% endfor %}
+
+	</table>
+	<div class="span12 center">
+		<h5 class="muted">Please make sure you add <span class='label label-success js-code-example'>this line of code</span> on your website, to enable an interaction with {{ app_name}}.</h5>
+	</div>
+
+</div>
+<div id="holder"></div>
+<script src="{% static 'js/raphael.js' %}" type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'js/graffle.js' %}" type="text/javascript" charset="utf-8"></script>
+<style type="text/css" media="screen">
+	#holder {
+		border-radius: 5px;
+		border: solid 1px #ddd;
+	}
+</style>
+<script src="{% static 'js/flow-visualization.js' %}" type="text/javascript" charset="utf-8"></script>
+
+{% endblock %}
+

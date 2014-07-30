@@ -1,0 +1,11 @@
+{% extends 'executor/base.html' %}
+{% load crispy_forms_tags %}
+{% block pagetitle %} Bid {% endblock %}
+{% block container %}
+    {{ task.title }}
+    {% crispy form %}
+
+{% endblock %}
+
+{% block script_footer %}
+{% endblock %}

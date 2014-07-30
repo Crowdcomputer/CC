@@ -1,0 +1,29 @@
+{% extends 'requester/base.html' %}
+{% load myfilters %}
+{% load humanize %}
+
+{% block pagetitle %}  {% endblock %}
+
+{% block container %}
+
+{% if process %}
+<h1>Are you sure to stop the process {{ process.title }} </h1>
+<form action="{% url 'r-process-stop' process.pk %}" method="post">
+{% csrf_token %}
+<input type="submit" value="Yes">
+</form> 
+<form action="{% url 'r-process' %}" method="get">
+<input type="submit" value="No">
+</form>
+{%else%}
+<h1>Are you sure to stop the task {{ task.title }} </h1>
+
+<form action="{% url 'r-task-stop' task.process.pk task.pk %}" method="post">
+{% csrf_token %}
+<input type="submit" value="Yes">
+</form> 
+<form action="{% url 'r-task-list' task.process.pk %}" method="get">
+<input type="submit" value="No">
+</form>
+{%endif%}
+{% endblock %}

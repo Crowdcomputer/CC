@@ -1,0 +1,137 @@
+{% extends 'requester/base.html' %} 
+{% load crispy_forms_tags %}
+{% block pagetitle %} Create {% endblock %}
+{% block container %}
+    {% crispy form %}
+
+{% endblock %}
+
+{% block script_footer %}
+<script>
+function hide(field){
+	console.log(field.is(":visible"));
+	if (field.is(":visible")){
+				console.log('hiding');
+		 		field.slideToggle(100);
+			} 
+}
+
+function show(field){
+	if (!(field.is(":visible"))){
+		 		field.slideToggle(100);
+			} 
+}
+
+function show_hide_input_task_field() {	
+	//this hides and shows the split method
+	var value = $("#id_category").val();
+	//if not a machine task then show the splitting
+	if ((($('#div_id_input_task input:checked')).length>0) && (value=='HT')){
+	 	show($("#div_id_split"));
+	 	show_hide_input_task_N_M_fields();
+	}	
+	else {
+		hide($("#div_id_split"));
+		$("#div_id_split_field_N").hide();
+		$("#div_id_split_field_M").hide();
+	}
+
+ 	//this hides and shows the id for merging
+ 	if (($('#div_id_input_task input:checked')).length>1){
+	 	show($("#div_id_input_task_field"));
+	 	
+	}	
+	else {
+		hide($("#div_id_input_task_field"));
+	}
+	
+	//this should show the fields depending on the type chosen in the div_id_split
+ 
+};
+
+
+function show_hide_input_task_N_M_fields(){
+	//if split is visible
+	if (($("#div_id_split")).is(":visible")){
+		var value = $("#id_split").val();
+		//split in N
+		if (value==2 || value==4){
+			show($("#div_id_split_field_N"));
+			hide($("#div_id_split_field_M"));
+			
+		}else
+			//split in N.M
+			if (value==3){
+				show($("#div_id_split_field_N"));
+				show($("#div_id_split_field_M"));
+			}
+			else{
+				hide($("#div_id_split_field_N"));
+				hide($("#div_id_split_field_M"));
+			}
+	}
+	else{
+			hide($("#div_id_split_field_N"));
+			hide($("#div_id_split_field_M"));
+		}
+};
+
+function show_hide_rr(){
+	var value = $("#id_category").val();
+	if (value=="HT"){
+		show($("#div_id_instances_required"));
+		show($("#div_id_is_unique"));
+		show($("#div_id_isMturk"));
+		show($("#div_id_reward_mturk"));
+		show($("#div_id_date_deadline"));
+		show($("#div_id_reward_type"));
+		show($("#div_id_reward_quantity"));
+	}		
+	else{
+		hide($("#div_id_instances_required"));
+		hide($("#div_id_is_unique"));
+		hide($("#div_id_isMturk"));
+		hide($("#div_id_reward_mturk"));
+		hide($("#div_id_date_deadline"));
+		hide($("#div_id_reward_type"));
+		hide($("#div_id_reward_quantity"));
+	}
+};
+
+function show_hide_all(){
+	show_hide_rr();
+	show_hide_input_task_field();
+	show_hide_input_task_N_M_fields();
+};
+
+function show_hide_mturk(){
+	var value = $("#id_isMturk").val();
+	console.log(value);
+	//True is not true
+	if (value=='True'){
+		show($("#div_id_reward_mturk"));
+	}		
+	else{
+		hide($("#div_id_reward_mturk"));
+	}		
+};
+
+
+
+$("#div_id_input_task").click(show_hide_input_task_field);
+$('#id_split').change(show_hide_input_task_N_M_fields);
+$("#id_category").change(show_hide_all);
+$("#id_isMturk").change(show_hide_mturk);
+
+
+$(document).ready(function() {
+  show_hide_rr();
+  show_hide_input_task_field();
+  show_hide_input_task_N_M_fields();
+  hide($("#div_id_reward_mturk"));
+});
+
+</script>
+{% endblock %}
+
+ 

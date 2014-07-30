@@ -1,0 +1,24 @@
+{% extends 'requester/base.html' %} 
+{% load crispy_forms_tags %}
+{% block pagetitle %} Task template {% endblock %}
+{% block container %}
+<form>
+	<fieldset>
+		<legend>
+			Task Edit
+		</legend>
+		<label>Title</label>
+		<input type="text" placeholder="Type something…">
+		<label>Description</label>
+		<textarea></textarea>
+		<label>Input url</label>
+		<input type="text" placeholder="Type something…">
+		<label>Input task</label>
+		<select></select>
+
+		<button type="submit" class="btn">
+			Submit
+		</button>
+	</fieldset>
+</form>
+{% endblock %}

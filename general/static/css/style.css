@@ -1,0 +1,338 @@
+/* Sticky footer styles
+ -------------------------------------------------- */
+/*.macscreen {
+ background-image: url('../img/macscreen.png');
+ background-repeat: no-repeat;
+ margin: 0px;
+ width: 735px;
+ height: 560px;
+ }*/
+.macscreen iframe {
+	position: relative;
+	margin-left: 25px;
+	margin-top: -440px;
+	width: 560px;
+	height: 315px;
+	float: left;
+}
+.macscreen img {
+	width: 615px !important;
+	max-width: 200% !important;
+	float: left;
+}
+.macscreen h5 {
+	width: 615px;
+}
+html, body {
+	height: 100%;
+	/*background-image:url('../img/escheresque.png');*/
+	/* The html and body elements cannot have any padding or margin. */
+}
+.span12 > div{
+	padding:20px;
+}
+.slide hr {
+	margin: 10px;
+}
+.slide div img {
+	max-width: 300px;
+}
+.nav.pull-right img {
+	margin-right: 5px;
+}
+/* Wrapper for page content to push down footer */
+
+/* Set the fixed height of the footer here */
+#push, #footer {
+	height: 60px;
+}
+#footer {
+	padding: 10px;
+	background-color: #f5f5f5;
+}
+
+/* Lastly, apply responsive CSS fixes as necessary */
+@media (max-width: 767px) {
+	#footer {
+		margin-left: -20px;
+		margin-right: -20px;
+		padding-left: 20px;
+		padding-right: 20px;
+	}
+}
+
+/* Custom page CSS
+ -------------------------------------------------- */
+/* Not required for template or sticky footer method. */
+
+.avatar {
+	height: 128px;
+}
+
+.marketing h2 {
+	line-height: 60px;
+}
+.marketing div, .marketing a.marketing p {
+	display: inline-block;
+}
+.marketing .featurette div {
+	margin: 20px;
+}
+.marketing .featurette .university-logo {
+	margin-top: 0px;
+}
+.center {
+	text-align: center;
+}
+.right {
+	text-align: right;
+}
+.left-border {
+	border-left: 1px, #ccc, solid;
+}
+.justified {
+	text-align: justify;
+}
+.two {
+	font-size: 200%;
+}
+.three {
+	font-size: 300%;
+}
+.four {
+	font-size: 400%;
+}
+.map-div {
+	min-height: 500px;
+	height: auto !important;
+	height: 500px;
+}
+#form-input-data {
+	margin: 0px;
+}
+iframe {
+	margin-top: 45px;
+}
+.iframe-hover {
+	/*z-index:1200;*/
+	background-color: rgba(100,100,120,0.8);
+	position: absolute;
+}
+.js-code-example {
+	cursor: pointer;
+}
+.hero-unit {
+	color: white;
+	text-align: center;
+	background: none;
+}
+.hero-unit * {
+	text-shadow: 1px 1px 10px black;
+}
+.hero-unit .btn {
+	width: 200px;
+	font-size: 50px;
+}
+.button-finish {
+	display: none;
+}
+
+/* Center align the text within the three columns below the carousel */
+.marketing .span4 {
+	text-align: center;
+}
+.marketing h2 {
+	font-weight: normal;
+}
+.marketing .span4 p {
+	margin-left: 10px;
+	margin-right: 20px;
+}
+
+.featurette-divider {
+	min-height: 80px;
+	margin: 0;
+}
+
+.featurette {
+	padding-top: 120px; /* Vertically center images part 1: add padding above and below text. */
+	overflow: hidden; /* Vertically center images part 2: clear their floats. */
+}
+.featurette-image {
+	margin-top: -120px; /* Vertically center images part 3: negative margin up the image the same amount of the padding to center it. */
+}
+
+/* Give some space on the sides of the floated elements so text doesn't run right into it. */
+.featurette-image.pull-left {
+	margin-right: 40px;
+}
+.featurette-image.pull-right {
+	margin-left: 40px;
+}
+
+/* Thin out the marketing headings */
+.featurette-heading {
+	font-size: 50px;
+	font-weight: 300;
+	line-height: 1;
+	letter-spacing: -1px;
+}
+
+#nav {
+	list-style: none;
+	position: fixed;
+	right: 20px;
+	z-index: 999;
+}
+
+#nav li {
+	margin: 0 0 15px 0;
+}
+#nav li a {
+	display: block;
+	width: 10px;
+	height: 10px;
+	border-radius: 10px;
+	background-color: white;
+	border: solid 2px rgba(100,100,120,0.8);
+}
+
+#nav li a.current {
+	background-color: rgba(100,100,120,0.8);
+}
+
+.form-signin {
+	max-width: 500px;
+	text-align: center;
+	padding: 19px 29px 29px;
+	margin: 0 auto 20px;
+	background-color: #fff;
+	border: 1px solid #e5e5e5;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	-webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+	-moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+	box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.form-signin .form-signin-heading, .form-signin .checkbox {
+	margin-bottom: 10px;
+}
+.form-signin input[type="text"], .form-signin input[type="password"] {
+	font-size: 16px;
+	height: auto;
+	margin-bottom: 15px;
+	padding: 7px 9px;
+}
+
+html, body {
+	height: 100%;
+}
+
+#wrap {
+	min-height: 100%;
+	height: auto !important;
+	/* Negative indent footer by it's height */
+	margin: 0 auto -80px;
+}
+#wrap .container {
+	padding-top: 60px;
+}
+#push {
+	height: 60px;
+}
+@media (max-width: 767px) {
+
+	body {
+		padding-top: 0px;
+	}
+
+	.navbar-inner {
+		margin: -20px;
+	}
+
+	.carousel {
+		margin-left: -20px;
+		margin-right: -20px;
+	}
+	.carousel .container {
+
+	}
+	.carousel .item {
+		height: 300px;
+	}
+	.carousel img {
+		height: 300px;
+	}
+	.carousel-caption {
+		width: 65%;
+		padding: 0 70px;
+		margin-bottom: 40px;
+	}
+	.carousel-caption h1 {
+		font-size: 30px;
+	}
+	.carousel-caption .lead, .carousel-caption .btn {
+		font-size: 18px;
+	}
+
+	.marketing .span4 + .span4 {
+		margin-top: 40px;
+	}
+
+	.featurette-heading {
+		font-size: 30px;
+	}
+	.featurette .lead {
+		font-size: 18px;
+		line-height: 1.5;
+	}
+
+}
+
+@media (max-width: 979px) {
+
+	.carousel .item {
+		height: 500px;
+	}
+	.carousel img {
+		width: auto;
+		height: 500px;
+	}
+
+	.featurette {
+		height: auto;
+	}
+	.featurette-image.pull-left, .featurette-image.pull-right {
+		display: block;
+		float: none;
+		max-width: 40%;
+		margin: 0 auto 20px;
+	}
+}
+.main-service-menu {
+	display: inline-block;
+	text-align: center;
+}
+.main-service-menu > a p {
+	margin: 0px !important;
+}
+.main-service-menu > a img {
+	width: 60px;
+}
+.main-service-menu > a  h5{
+	margin:0px;
+}
+.main-service-menu > a {
+	width: 50%;
+	display: inline-block;
+	margin: 0px 10px 10px 10px;
+	padding: 15px 0px;
+	border: 2px solid #eee;
+	border-radius: 5px;
+}
+.main-service-menu > a:hover {
+	box-shadow: rgba(0, 0, 0, 0.3) 1px 1px 25px 0px;
+	border-color: #149BDF;
+}
+

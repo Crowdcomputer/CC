@@ -1,0 +1,197 @@
+{% extends 'executor/base.html' %}
+{% load jsonify %}
+
+<!--Div that block the iframe-->
+{% block buttons-nav %}
+<!-- li>
+<button class="btn btn-success button-finish">
+Finish the task
+</button>
+&nbsp;
+</li -->
+{% endblock %}
+
+{%block pre-container %}
+<div class="iframe-hover">
+	<div class='hero-unit'>
+		<h1>Dear friend!</h1>
+		<h4 class="lead">we kindly ask you to help {{task.user.first_name}}</h4>
+		<h4 class="lead">{{task.title}}</h4>
+		<h4 class="lead">{{task.description}}</h4>
+		<button class="btn btn-success button-start btn-large disabled">
+			start
+		</button>
+		<!--p>
+			Welcome to Crowdmachine- a webservice, where you can help others
+			<br/>
+			to solve great challenges, contributing a portion of your time.
+		</p-->
+	</div>
+</div>
+<form action="{{task.humantask.page_url}}" method="post" target="requestor-webpage" id="form-input-data">
+	<!--input type="hidden" name="data" value="{{input_data}}" /-->
+	<!--input type="hidden" name="data" value="" /-->
+
+</form>
+<iframe src="{{task.humantask.page_url}}" width="500px" name="requestor-webpage" height="500px" align="center">
+
+</iframe>
+{% endblock %}
+
+{%block script_footer %}
+<script>
+
+	var task_instance_uuid;
+	var initial_instance_id = {{taskinstance}};
+	console.log(initial_instance_id);
+	var instance = [];
+	if (initial_instance_id > 0) {
+	
+		//console.log('{{taskinstance.uuid}}');
+		instance['input'] = '{{taskinstance.input_data.value|jsonify}}';
+		instance['uuid'] = '{{taskinstance.uuid}}';
+		instance['user'] = '{{taskinstance.user.username}}';
+		instance['id'] = '{{taskinstance.id}}';
+	}
+	//this part listen to messages from the child window (iframe)
+	$.receiveMessage(function(e) {
+		var data_from_iframe = e.data;
+		ResponseFinish(data_from_iframe);
+	});
+	function SendPostByFormSubmit(input_data, form_id) {
+		var inputs = '';
+		var i = 0;
+		var submit_button = 0;
+		var json = jQuery.parseJSON(input_data);
+		console.log("json" + json.length);
+		for ( i = 0; i < json.length; i++)
+			for (var key in json[i]) {
+				console.log(key + " " + json[i][key] ) 
+				if (key != 'submit')
+					inputs += '<input type="hidden" name="' + key + '[]" value="' + json[i][key] + '" />';
+				else {
+					submit_button = 1;
+					inputs += '<input type="submit" name="submit" value="' + json[i][key] + '"/>';
+				}
+			}
+		$('#' + form_id).append(inputs);
+		if (submit_button == 0)
+			$('#' + form_id).submit();
+		else
+			$('#' + form_id).find('[type=submit]').click();
+	}
+
+	//Fit iframe exact to the window size. Minus 4px is for compensating borders
+	function ResponseCreate() {
+				console.log("init id "+initial_instance_id)
+	
+		//If don't have pre-given instance
+		if (initial_instance_id == 0){
+			$.post('{% url "e-ti-update" task.uuid %}', function(data) {
+				if (data.success) {
+					$('.button-start').text('finish');
+					$('.button-start').addClass('button-finish');
+					$('.button-start').removeClass('button-start');
+					if (data.input_data != '') {
+						SendPostByFormSubmit(data.input_data, 'form-input-data');
+					}
+					task_instance_uuid = data.taskinstance;
+					$('.iframe-hover').hide();
+					$('.button-finish').show();
+					$.postMessage(String(data.taskinstance_user), '{{task.get_input_url}}', $('iframe').get(0).contentWindow);
+
+				} else {
+					alert(data.detail);
+					window.location = '/';
+				}
+			}, 'json');
+	}		
+			//If we perform a pre-given instance
+		//We send the username only in this case
+		else {
+			$('.button-start').text('finish');
+			$('.button-start').addClass('button-finish');
+			$('.button-start').removeClass('button-start');
+			task_instance_uuid = instance['uuid'];
+			if (instance['input'] != '') {
+				SendPostByFormSubmit(instance['input'], 'form-input-data');
+			}
+			$.postMessage(String(instance['user']), '{{task.get_input_url}}', $('iframe').get(0).contentWindow);
+			$('.iframe-hover').hide();
+			$('.button-finish').show();
+
+		}
+	}
+
+	//This function finishes the response (in case if button Finish pushed or if the url_end is reached)
+	function ResponseFinish(output) {
+		$.post('/exe/taskinstance/' + task_instance_uuid + '/finish/', {
+			'output' : output
+		}, function(data) {
+			if (data.success) {
+				//alert('Thank you very much');
+				//window.location = data.redirect;
+				window.location = '{% url "thanks" %}';
+			} else {
+				alert(data.detail);
+			}
+		}, 'json');
+	}
+
+	//THIS fucntion fit the size of the iframe window, depending on the size of the main window
+	function FitIframeSize() {
+		var iframe_height = $(window).height() - $('.navbar-fixed-top').height() - 4;
+		var iframe_width = $(window).width() - 4;
+
+		$('iframe').attr('height', iframe_height + 'px');
+		$('iframe').attr('width', iframe_width + 'px');
+
+		$('.iframe-hover').css('height', iframe_height + 'px');
+		$('.iframe-hover').css('width', iframe_width + 'px');
+		$('.iframe-hover').css('top', $('.navbar-fixed-top').height() + 'px');
+	}
+
+
+	$(document).ready(function() {
+		var csrftoken = '{{ csrf_token }}';
+		function csrfSafeMethod(method) {
+    	// these HTTP methods do not require CSRF protection
+    	return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+		}
+		$.ajaxSetup({
+    	crossDomain: false, // obviates need for sameOrigin test
+    	beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type)) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+   		}
+		});
+
+
+		$('.tip').tooltip();
+		//Turn on popover for the button showing task.title+task.description
+		$('.task_title').popover({
+			placement : 'bottom'
+		});
+		FitIframeSize()
+		$(window).resize(function() {
+			FitIframeSize()
+		});
+		//Start task, create response, hide the blocking screen from the iframe
+		$("iframe").ready(function() {
+			$('.button-start').removeClass('disabled');
+			$('.button-start').click(function() {
+				ResponseCreate();
+			});
+			$('.button-finish').click(function() {
+				ResponseFinish('')
+			});
+		});
+
+		//finish the task (it is inside of responseCreate function, because button click listener should be initilised for the button with new class)
+
+	}); 
+</script>
+{% endblock %}
+</body>
+</html>

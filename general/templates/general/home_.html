@@ -1,0 +1,51 @@
+{% extends 'general/base_home.html' %} 
+{% block pagetitle %} Home {% endblock %}
+{% block nav-bar %} {%endblock%}
+{% block script_head %}
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+<script>
+$(document).ready(function(){
+	var wh = $(window).height();
+	$(".slide").css("height", wh +"px");
+	
+	$(window).resize(function(){
+		location.reload();
+	});	
+
+
+})
+</script>
+{% endblock %}
+{% block pre-container %}
+<div id="overall_container">
+	<div id="intro" class="slide">
+		<div class="story">
+			<div class="text float-left">
+				<h1>
+					Enrich your free time.				</h1>
+				<h3>
+					Discover exciting things to do<br>with new interesting people!				</h3>
+				<a class="main_bt" href="#first">
+				Start now!				</a> 
+			</div>
+			<div id="pins_container">
+				<div id="pins"></div>
+			</div>
+		</div>
+		<!--.story--> 
+	</div>
+	<div id="second" class="slide" data-id="1">
+		<div class="story">
+			<div class="text float-left">
+				<h2>
+					Search				</h2>
+				<p>
+					Looking for something to do? Take a look at what other people are doing around you and join the flock!				</p>
+				<a class="main_bt" href="#second">
+				Next				</a> 
+			</div>
+		</div>
+	</div>
+</div>
+ {% endblock %}
+

@@ -1,0 +1,73 @@
+{% extends 'requester/base.html' %}
+{% load myfilters %}
+{% load humanize %}
+
+{% block pagetitle %} Profile {% endblock %}
+
+{% block container %}
+
+<h1>Processes created by you <a href="{% url "bpmn-upload" %}" title='add a new process' class="btn"><i class="icon-plus"></i></a></h1>
+<div class='row'>
+	<table class="table table-hover ">
+		<thead>
+			<th>Title</th>
+			<th>Description</th>
+			<th>Status</th>
+			<th>Date</th>
+			<th></th>
+		</thead>
+		{% for process in process_list  %}
+				<tr class="{{process.status|to_tr_class}}">
+
+			<td>{{process.title}}</td>
+			<td>{{process.description}}</td>
+			{% if process %}
+				<td>{{process.status}}</td>
+			{% endif %}
+						<td>{{process.date_created}}</td>
+			
+			<td>
+			<div class="btn-group">
+			<!--  FIXME: make a control here -->
+				<a href='{% url "r-task-list" process.id %}' class='btn' title='show tasks in this process'><i class='icon-th-list'></i></a>
+				{%if process.is_inprocess %}
+				<a href='{% url "r-process-stop" process.id %}' class='btn' title='Force finish'><i class='icon-ok'></i></a>
+				{%endif%}	
+				{% if False %} 
+				<a href='{% url "r-process-update" process.id %}' class='btn' title='edit this process'><i class='icon-pencil'></i></a>
+				
+				<a href='{% url "r-process-delete" process.id %}' class='btn btn-danger' title='delete this process'><i class='icon-trash'></i></a>
+				{% endif %}
+			</div></td>
+
+		</tr>
+		{% endfor %}
+
+	</table>
+	{% if is_paginated %}
+        <div class="pagination pagination-centered">
+             <ul> 
+             	{% if page_obj.has_previous %}
+          		    <li class="active"><a href="{% url "r-process"%}?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+                {%else%}
+                	<li class="disabled"><a href="#">&laquo;</a></li>
+                {% endif %}
+             	
+            	{% for page in page_obj.paginator.page_range %}
+            	{% if page == page_obj.number %}
+            	  <li class="disabled"><a href="#">{{page}}</a></li>
+          		{% else %}
+          		<li class="active"><a href="{% url "r-process"%}?page={{page}}">{{page}}</a></li>
+          		{% endif %}
+          		{%endfor%}
+          		{% if page_obj.has_next %}
+          		    <li class="active"><a href="{% url "r-process"%}?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+                {%else%}
+                	<li class="disabled"><a href="#">&raquo;</a></li>
+                {% endif %}
+                </ul>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

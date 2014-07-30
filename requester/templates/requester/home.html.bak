@@ -1,0 +1,8 @@
+{% extends 'requester/base.html' %} 
+{% block pagetitle %} Home {% endblock %}
+
+{% block container %}
+<h1>{{ app_name}}</h1>
+<p>description of this wonderful project</p>
+{% endblock %}
+

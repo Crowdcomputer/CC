@@ -1,0 +1,41 @@
+{% extends 'requester/base.html' %}
+{% load myfilters %}
+{% load humanize %}
+
+{% block pagetitle %} Profile {% endblock %}
+
+{% block container %}
+
+<h1>Processes created by you <a href="{% url r-process-create %}" title='add a new process' class="btn"><i class="icon-plus"></i></a></h1>
+<div class='row'>
+	<table class="table table-hover ">
+		<thead>
+			<th>Identity</th>
+			<th>Title</th>
+			<th>Description</th>
+			<th>status</th>
+			<th></th>
+		</thead>
+		{% for process in process_list  %}
+		<tr class="{{process.status|to_tr_class}}">
+			<td>{{forloop.counter}}</td>
+			<td>{{process.title}}</td>
+			<td>{{process.description}}</td>
+			<td>{{process.get_status_display}}</td>
+			<td>
+			<div class="btn-group">
+				{%if process.int_status == 0 %}
+				<a href='{% url 'r-task-list' process.id %}' class='btn' title='show tasks in this process'><i class='icon-th-list'></i></a>
+				<a href='{% url 'r-process-update' process.id %}' class='btn' title='edit this task'><i class='icon-pencil'></i></a>
+				<a href='{% url 'r-process-delete' process.id %}' class='btn btn-danger' title='delete this task'><i class='icon-trash'></i></a>
+				{%endif%}
+			</div></td>
+
+		</tr>
+		{% endfor %}
+
+	</table>
+
+</div>
+{% endblock %}
+

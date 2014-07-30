@@ -1,0 +1,11 @@
+<footer id="footer">
+	<div class="container">
+		{% load flatpages %}
+		{% get_flatpages as flatpages %}
+		{% for page in flatpages %}
+		<a href="{{ page.url }}">{{ page.title }}</a> |
+
+		{% endfor %}
+		<p class="muted">CrowdComputer 2013</p>
+	</div>
+</footer>

@@ -1,0 +1,153 @@
+{% extends 'executor/base_turk.html' %}
+{% load jsonify %}
+
+<!--Div that block the iframe-->
+{% block buttons-nav %}
+<!-- li>
+<button class="btn btn-success button-finish">
+Finish the task
+</button>
+&nbsp;
+</li -->
+{% endblock %}
+
+{%block pre-container %}
+<div class="iframe-hover">
+	<div class='hero-unit'>
+		<h1>Dear friend!</h1>
+		<h4 class="lead">we kindly ask you to help {{task.user.first_name}}</h4>
+		<h4 class="lead">{{task.title}}</h4>
+		<h4 class="lead">{{task.description}}</h4>
+		<!--p>
+			Welcome to Crowdmachine- a webservice, where you can help others
+			<br/>
+			to solve great challenges, contributing a portion of your time.
+		</p-->
+	</div>
+</div>
+<form action="{{task.humantask.page_url}}{{pars}}&amp;csrf={{csrf_token}}" method="post" target="requestor-webpage" id="form-input-data">
+	<!--input type="hidden" name="data" value="{{input_data}}" /-->
+	<!--input type="hidden" name="data" value="" /-->
+
+</form>
+<iframe src="{{task.humantask.page_url}}{{pars}}&amp;csrf={{csrf_token}}" width="500px" name="requestor-webpage" height="500px" align="center">
+
+</iframe>
+{% endblock %}
+
+{%block script_footer %}
+<script>
+
+	var task_instance_uuid;
+	var initial_instance_id = {{taskinstance}};
+	var instance = [];
+	
+	function gup(name) {
+	var regexS = "[\\?&]" + name + "=([^&#]*)";
+	var regex = new RegExp(regexS);
+	var tmpURL = window.location.href;
+	var results = regex.exec(tmpURL); 
+	if (results==null)   
+		return null;
+ 	return results[1];
+}
+	
+	
+	if (initial_instance_id > 0) {
+		//console.log('{{taskinstance.uuid}}');
+		instance['input'] = '{{taskinstance.input_data.value|jsonify}}';
+		instance['uuid'] = '{{taskinstance.uuid}}';
+		instance['user'] = 'Mturk';
+		instance['id'] = '{{taskinstance.id}}';
+	}
+
+	
+	function SendPostByFormSubmit(input_data, form_id) {
+		var inputs = '';
+		var i = 0;
+		var submit_button = 0;
+		var json = jQuery.parseJSON(input_data);
+		for ( i = 0; i < json.length; i++)
+			for (var key in json[i]) {
+				if (key != 'submit')
+					inputs += '<input type="hidden" name="' + key + '[]" value="' + json[i][key] + '" />';
+				else {
+					submit_button = 1;
+					inputs += '<input type="submit" name="submit" value="' + json[i][key] + '"/>';
+				}
+			}
+		inputs += '<input type="hidden" name="hitId" value="'+gup('hitId')+'" />';
+		inputs += '<input type="hidden" name="assigmentId" value="'+gup('assigmentId')+'"}}" />';
+		inputs += '<input type="hidden" name="workerId" value="'+gup('workerId')+'" />';
+		$('#' + form_id).append(inputs);
+		if (submit_button == 0)
+			$('#' + form_id).submit();
+		else
+			$('#' + form_id).find('[type=submit]').click();
+	}
+
+	//Fit iframe exact to the window size. Minus 4px is for compensating borders
+	function ResponseCreate() {
+		//If don't have pre-given instance
+		// if task is not accepted in mturk
+		console.log('responsecreate');
+		console.log("assigment id = " +gup('assignmentId'));
+		
+		if (gup('assignmentId') != "ASSIGNMENT_ID_NOT_AVAILABLE") {
+			task_instance_uuid = instance['uuid'];
+			if (instance['input'] != '') {
+				SendPostByFormSubmit(instance['input'], 'form-input-data');
+			}
+			$.postMessage(String(instance['user']), '{{task.get_input_url}}', $('iframe').get(0).contentWindow);
+			$('.iframe-hover').hide();
+
+		}	else{
+		$('.iframe-hover').show();
+		}
+	}
+
+	//This function finishes the response (in case if button Finish pushed or if the url_end is reached)
+	function ResponseFinish(output) {
+		$.post('/exe/taskinstance/' + task_instance_uuid + '/finish/', {
+			'output' : output
+		}, function(data) {
+			if (data.success) {
+				//alert('Thank you very much');
+				//window.location = data.redirect;
+				window.location = '{% url "thanks" %}';
+			} else {
+				alert(data.detail);
+			}
+		}, 'json');
+	}
+
+	//THIS fucntion fit the size of the iframe window, depending on the size of the main window
+	function FitIframeSize() {
+		var iframe_height = $(window).height() - $('.navbar-fixed-top').height() - 4;
+		var iframe_width = $(window).width() - 4;
+		console.log(iframe_height + " "+iframe_width) ;
+		$('iframe').attr('height', iframe_height + 'px');
+		$('iframe').attr('width', iframe_width + 'px');
+
+		$('.iframe-hover').css('height', iframe_height + 'px');
+		$('.iframe-hover').css('width', iframe_width + 'px');
+		$('.iframe-hover').css('top', $('.navbar-fixed-top').height() + 'px');
+	}
+
+
+	$(document).ready(function() {
+	   
+	    FitIframeSize();
+		$(window).resize(function() {
+			FitIframeSize();
+		});
+		$("iframe").ready(function() {
+				ResponseCreate();
+		});
+
+
+	}); 
+</script>
+{% endblock %}
+</body>
+</html>

@@ -1,0 +1,41 @@
+{% extends 'executor/base.html' %}
+{% load myfilters %}
+{% load humanize %}
+
+{% block pagetitle %} Task list {% endblock %}
+
+{% block container %}
+
+<h1>Task List </h1>
+<div class='row'>
+	<table class="table table-hover ">
+		<thead>
+			<th>Title</th>
+			<th>Description</th>
+			<th>Reward</th>
+			<th>Available</th>
+			<th>Requester</th>
+			<th></th>
+		</thead>
+		{% for task in task_list  %}
+		<tr class="{{task.status|to_tr_class}}">
+			<td>{{task.title}}</td>
+			<td>{{task.description}}</td>
+			<td>{{task.reward.quantity}}({{task.reward.get_type_display}})</td>
+			<td>{{task.instances_available}}</td>
+			<td>{{task.user.username}}</td>
+			<td>
+			<div class="btn-group">
+			
+				<a href='{% url e-execute task.uuid %}' class='btn tip' title='go to the execution page' ><i class='icon-globe'></i></a>
+
+			</div>
+			</td>
+
+		</tr>
+		{% endfor %}
+
+	</table>
+</div>
+{% endblock %}
+

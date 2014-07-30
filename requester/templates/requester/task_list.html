@@ -1,0 +1,176 @@
+{% extends 'requester/base.html' %}
+{% load static from staticfiles %}
+{% load myfilters %}
+{% load humanize %}
+{% load jsonify %}
+
+{% block pagetitle %} Profile {% endblock %}
+
+{% block container %}
+<style>
+	h1 .btn-group {
+		display: inline-block;
+	}
+</style>
+<h1> {{process.title}} <span class="muted">task list:</span>	
+<!-- <a href="{% url "r-task-create" process.id %}" title='add new task to this process'  class='tip btn'><i class="icon-plus">-->
+{% if prev_process_id %}
+<a href="{% url "r-taskinstances" prev_process_id prev_task_id%}" title='Go back'  class='tip btn'><i class="icon-backward"></i></a>
+{%else%}
+<a href="{% url "r-process" %}" title='Go back'  class='tip btn'><i class="icon-backward"></i></a>
+{% endif %}
+</i></a>
+
+</h1>
+
+<div class='row'>
+
+	<script>
+		//Here we prepare a list of tasks to be visualised later using raphaelJs
+		var task_list = new Array();
+		function Task(id, title, inputs, status, shape_text, shape_rect, number) {
+			this.id = id;
+			this.title = title;
+			this.status = status;
+			this.number = number
+			this.shape_text = shape_text;
+			this.shape_rect = shape_rect;
+			this.inputs = inputs;
+		}
+
+		var i = 0;
+		{% for task in task_list %}
+		i++;
+		var j = 0;
+		var inputs = new Array();
+		{% for input_task in task.input_task.all %}
+		inputs.push({{input_task.id}});
+		{% endfor %}
+		t=new Task({{task.id}},
+		'{{task.title}}', inputs, '{{task.status}}');
+		if (t.status != 'DL')
+			task_list.push(t);
+
+		{% endfor %}
+
+	</script>
+	
+	<table class="table table-hover ">
+		<thead>
+			<th>Title</th>
+			<th>Description</th>
+			<th>Platform Type</th>
+			<th>deadline</th>
+			<th>responses</th>
+			<th>status</th>
+			<th>parameters</th>
+			<th></th>
+		</thead>
+		{% for task in task_list  %}
+		<tr class="{{task.status|to_tr_class}}">
+			<td>{{task.title}}</td>
+			<td>{{task.description}}</td>
+			<td>{{task.humantask.platform}} {{task.parameters.type}} - {{task.humantask.reward.get_strategy_display}}</td>
+			{% comment %}
+			<td> {% if task.input_task.all.count > 0 %} <em>{{ task.get_split_display }}</em></br> {% for t_input in task.input_task.all %}
+			[{{ t_input.id }}] {{t_input.title}} </br>
+			{% endfor %} <em>{{ task.input_task_field }}</em> {% endif %} </td>
+			{% endcomment %}
+			<td>{{task.date_deadline|naturaltime}}
+			<br/>
+			({{task.date_deadline}})</td>
+
+			<td><!--  {{task.responses_given}} of {{task.responses_required}}--><a href='{% url "r-taskinstances" process_id=task.process.id task_id=task.id %}'>
+			<div class="progress">
+				{% if task.instances_amount > 0 %}
+				<div class="bar bar-success" style="width: {{task.instances_given|percentage:task.instances_amount }}%;">
+					{{task.instances_given}}
+				</div>
+				<div class="bar bar-warning" style="width: {{task.instances_running|percentage:task.instances_amount}}%;">
+					{{task.instances_running}}
+				</div>
+				<div class="bar bar-danger" style="width: {{task.instances_available|percentage:task.instances_amount}}%;">
+					{{task.instances_available}}
+				</div>
+				{%endif%}
+			
+			</div> </a></td>
+			<td>{{task.get_status_display}}</td>
+			<td>{{task.parameters|jsonify}}</td>
+			<td>
+			<div class="btn-group">
+				{% if task|typeOfTask == "HumanTask" %}
+				{% if False %}
+					{%if task.is_stopped %}
+					<a href="{% url "r-task-start" process_id=task.process.id task_id=task.id %}" class='btn tip' title='start the task'><i class='icon-play'></i></a>
+					<a href="{% url "r-task-update" process_id=task.process.id pk=task.id %}" class='btn tip' title='edit the task'><i class='icon-pencil'></i></a>
+					<a href="{% url "r-task-delete" process_id=task.process.id task_id=task.id %}" class='btn btn-danger tip' title='delete the task'><i class='icon-trash'></i></a>
+					{%endif%}
+				{% endif %}
+				<a target='_blank' href="{% url "e-execute" uuid=task.humantask.uuid %}" class='btn tip' title='go to the execution page'><i class='icon-globe'></i></a>
+				{% endif %}
+				{% if task|typeOfTask == "TurkTask" %}
+				{% if task.parameters.HITTypeId %}
+					<a target='_blank' href="https://workersandbox.mturk.com/mturk/preview?groupId={{task.parameters.HITTypeId}}" class='btn tip' title='go to the Mturk page'>MT</a>
+				{% endif %}
+				{% endif %}
+				{%if task.is_inprocess %}
+					<a href="{% url "r-task-stop" process_id=task.process.id task_id=task.id %}" class='btn tip' title='finish the task'><i class='icon-ok'></i></a>
+				{%else%}
+					<a href="{% url "r-task-csv" process_id=task.process.id task_id=task.id %}" class='btn tip' title='export to csv (in beta)'><i class='icon-file'></i></a>
+				
+				{%endif%}
+			</div></td>
+
+		</tr>
+		{% endfor %}
+
+	</table>
+	{%  comment %}
+	<div class="span12 center">
+		<h5 class="muted">Please make sure you add <span class='label label-success js-code-example'>this line of code</span> on your website, to enable an interaction with {{ app_name}}.</h5>
+	</div>
+	{% endcomment %}
+	{% if is_paginated %}
+        <div class="pagination pagination-centered">
+             <ul> 
+             	{% if page_obj.has_previous %}
+          		    <li class="active"><a href="{% url "r-task-list" process.id %}?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+                {%else%}
+                	<li class="disabled"><a href="#">&laquo;</a></li>
+                {% endif %}
+             	
+            	{% for page in page_obj.paginator.page_range %}
+            	{% if page == page_obj.number %}
+            	  <li class="disabled"><a href="#">{{page}}</a></li>
+          		{% else %}
+          		<li class="active"><a href="{% url "r-task-list" process.id %}?page={{page}}">{{page}}</a></li>
+          		{% endif %}
+          		{%endfor%}
+          		{% if page_obj.has_next %}
+          		    <li class="active"><a href="{% url "r-task-list" process.id %}?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+                {%else%}
+                	<li class="disabled"><a href="#">&raquo;</a></li>
+                {% endif %}
+                </ul>
+        </div>
+    {% endif %}
+	
+</div>
+<div id="holder"></div>
+{% if picture %}
+	<script src="{% static 'js/raphael.js' %}" type="text/javascript" charset="utf-8"></script>
+	<script src="{% static 'js/graffle.js' %}" type="text/javascript" charset="utf-8"></script>
+	<style type="text/css" media="screen">
+		#holder {
+			border-radius: 5px;
+			border: solid 1px #ddd;
+		}
+	</style>
+	<script src="{% static 'js/flow-visualization.js' %}" type="text/javascript" charset="utf-8"></script>
+{% else %}
+	<h2>It's a BPMN process</h2>
+
+{% endif %}
+{% endblock %}
+

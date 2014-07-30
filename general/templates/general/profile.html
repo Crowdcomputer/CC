@@ -1,0 +1,64 @@
+{% extends 'general/base.html' %} 
+{% load myfilters %}
+
+{% block pagetitle %} Profile {% endblock %}
+
+{% block container %}
+<!--
+<h1>Profile</h1>
+  -->
+
+<div class="row">
+		<!--  
+		<div class="span12"><img alt="{{user_profile.picture}}" src="{{user_profile.picture}}" class="img-rounded" width="100"></div>
+		<div class="span6"><h2>Name:</h2></div> 
+		<div class="span6"><h2>{{ user_profile.name|default:"-" }}</h2></div>
+		<div class="span6"><h2>Surname:</h2></div> 
+		<div class="span6"><h2>{{ user_profile.surname|default:"-" }}</h2></div>
+		<div class="span6">Birthday</div>
+		<div class="span6">{{ user_profile.birthday|default:"-" }}</div>
+		<div class="span6">email</div>
+		<div class="span6">{{ user_profile.email|default:"-" }}</div>
+		<div class="span6">locale</div>
+		<div class="span6">{{ user_profile.locale|default:"-" }}</div>
+		<div class="span6">gender</div>
+		<div class="span6">{{ user_profile.gender|default:"-" }}</div>
+		<div class="span6">hometown</div>
+		<div class="span6">{{ user_profile.hometown|default:"-" }}</div>
+		<div class="span6">languages</div>
+		<div class="span6">
+			{% if user_profie.languages %}
+				{% for lang in user_profile.languages.all  %}
+				  <a targt="_blank" href="http://facebook.com/{{lang.fb_id}}">{{lang.name}}</a>,
+				{% endfor %}
+			{%else%}
+				-
+			{%endif%}
+		</div>	
+		<div class="span6">extradata</div>
+		<div class="span6">{{ social_user.extra_data|default:"-"}}</div>	
+		<div class="span6">coordinate</div>
+		<div class="span6"><a target="_blank" href="https://maps.google.com/maps?q={{ user_profile.latitude}}+{{ user_profile.longitude}}">{{ user_profile.latitude|default:"-"}} {{ user_profile.longitude|default:"-"}}</a> - <a  href="/geoloc">update</a></div>
+		
+		<div class="span12"><h2>Stats:</h2></div>
+		<div class="span6">Tasks created as requester</div>
+		<div class="span6">{{ user_profile.count_tasks|default:"-"}}</div>
+		<div class="span6">Responses given as executor</div>
+		<div class="span6">{{ user_profile.count_responses|default:"-" }}</div>
+		
+		<div class="span12"><h2>Rewards:</h2></div>
+		
+		<div class="span6">reward time (HH:mm:ss)</div>
+		<div class="span6">{{ user_profile.reward_dollars|default:0|fromsec}}</div>
+		 
+		<div class="span6">reward</div>
+		<div class="span6">{{ user_profile.reward_dollars|default:"-" }}</div>
+		-->
+		<div class="span12"><h2>Rewards:{{ user_profile.reward_dollars|default:" Nothing " }}</h2></div>
+		
+		
+</div>
+
+{% endblock %}
+
+

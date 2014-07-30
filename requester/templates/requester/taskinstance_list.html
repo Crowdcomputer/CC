@@ -1,0 +1,104 @@
+{% extends 'requester/base.html' %} 
+{% load myfilters %}
+{% load humanize %}
+{% load jsonify %}
+{% block pagetitle %} Profile {% endblock %}
+
+{% block container %}
+
+<h1>{{task.title}} <span class="muted">instance list: </span>
+<a href="{% url "r-task-list" process.id %}" title='Go back'  class='tip btn'><i class="icon-backward"></i></a>
+ </h1>
+<div class='row'>
+	<table class="table table-hover ">
+		<thead>
+			<th>Identity</th>
+			<th>User</th>
+			<th>date_created</th>
+			<th>date_finished</th>
+			<th>Input</th>
+			<th>Output</th>
+			<th>Validation</th>
+			<th>Rewarded</th>
+			
+			<th>Parameters</th>
+			<th>status</th>
+			<th></th>
+		</thead>
+		{% for taskinstance in taskinstance_list  %}
+		<tr class="{{taskinstance.status|to_tr_class}}">
+			<td>{{forloop.counter}}</td>
+			<td>
+			{% if taskinstance.executor.first_name and taskinstance.executor.first_name.strip %}{{taskinstance.executor.first_name}} {{taskinstance.executor.last_name}}{% else %}{{taskinstance.executor.username}}{% endif %}
+			
+			</td>
+			<td>{{taskinstance.date_created}}</td>
+			<td>{{taskinstance.date_finished}}</td>
+			<td>{{taskinstance.input_data.value|jsonify}}</td>
+			<td>{{taskinstance.output_data.value|jsonify}}</td>
+			<td>{% if "validation"  not in taskinstance.parameters %}
+					<span class="badge badge-warning">?</span>
+				{% elif taskinstance.parameters.validation == True %}
+				<span class="badge badge-success"><i class="icon-ok"></i></span>
+				{% elif taskinstance.parameters.validation == False %}
+				<span class="badge badge-important"><i class="icon-remove"></i></span>
+				{% else  %}
+				<span class="badge badge-warning">{{taskinstance.parameters.validation}}</span>
+				{% endif %}
+				{% if taskinstance.validation %}
+				<a href='{% url "r-task-list" taskinstance.validation.pk %}' class='btn btn-mini' title='go to validation process'><i class='icon-list'></i></a>
+				{%endif%}
+			</td>
+			<td>
+				{% if "reward"  not in taskinstance.parameters %}
+				<span class="badge badge-warning">?</span>
+				{% elif taskinstance.parameters.reward == True %}
+				<span class="badge badge-success"><i class="icon-ok"></i></span>
+				{% elif taskinstance.parameters.reward == False %}
+				<span class="badge badge-important"><i class="icon-remove"></i></span>
+				{%else %}
+								<span class="badge badge-warning">{{taskinstance.parameters.reward}}</span>
+				
+				{% endif %}
+			</td>
+			<td>{{taskinstance.parameters|jsonify}}</td>
+			<td>{{taskinstance.status}}</td>
+			<td>
+			{% if taskinstance.task|typeOfTask == "TurkTask" %}
+		        <a target='_blank' href="https://workersandbox.mturk.com/mturk/preview?groupId={{taskinstance.parameters.HITTypeId}}" class='btn tip' title='go to the Mturk page'>MT</a>
+			{%else%}
+			<a target='_blank' href='{% url "e-execute-instance" uuid=taskinstance.uuid %}' class='btn tip' title='go to the execution page'><i class='icon-globe'></i></a>
+			{%endif%}
+			</td>
+		</tr>
+		{% endfor %}
+
+	</table>
+	{% if is_paginated %}
+        <div class="pagination pagination-centered">
+             <ul> 
+             	{% if page_obj.has_previous %}
+          		    <li class="active"><a href="{% url "r-taskinstances" process.id task.id %}?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+                {%else%}
+                	<li class="disabled"><a href="#">&laquo;</a></li>
+                {% endif %}
+             	
+            	{% for page in page_obj.paginator.page_range %}
+            	{% if page == page_obj.number %}
+            	  <li class="disabled"><a href="#">{{page}}</a></li>
+          		{% else %}
+          		<li class="active"><a href="{% url "r-taskinstances" process.id task.id %}?page={{page}}">{{page}}</a></li>
+          		{% endif %}
+          		{%endfor%}
+          		{% if page_obj.has_next %}
+          		    <li class="active"><a href="{% url "r-taskinstances" process.id task.id %}?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+                {%else%}
+                	<li class="disabled"><a href="#">&raquo;</a></li>
+                {% endif %}
+                </ul>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+

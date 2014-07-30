@@ -1,0 +1,132 @@
+{% extends 'general/base.html' %} 
+
+{% block pagetitle %} Geo Loca {% endblock %}
+{% block script_footer %}
+<script>
+//using jQuery
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+function sameOrigin(url) {
+    // test that a given url is a same-origin URL
+    // url could be relative or scheme relative or absolute
+    var host = document.location.host; // host + port
+    var protocol = document.location.protocol;
+    var sr_origin = '//' + host;
+    var origin = protocol + sr_origin;
+    // Allow absolute or scheme relative URLs to same origin
+    return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+        (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+        // or any other URL that isn't scheme relative or absolute i.e relative.
+        !(/^(\/\/|http:|https:).*/.test(url));
+}
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && sameOrigin(settings.url)) {
+            // Send the token to same-origin, relative URLs only.
+            // Send the token only if the method warrants CSRF protection
+            // Using the CSRFToken value acquired earlier
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+function getUserLocation() { 
+	
+	//check if the geolocation object is supported, if so get position
+	if (navigator.geolocation)
+		navigator.geolocation.getCurrentPosition(displayLocation, displayError);
+		
+	else
+		document.getElementById("locationData").innerHTML = "Sorry - your browser doesn't support geolocation!";
+}
+
+
+function displayLocation(position) { 
+
+	//build text string including co-ordinate data passed in parameter
+	var displayText = "User latitude is " + position.coords.latitude + " and longitude is " + position.coords.longitude;
+	
+	//display the string for demonstration
+	document.getElementById("locationData").innerHTML = displayText;
+	
+	//redirect
+	next(position.coords.latitude,position.coords.longitude);
+}
+
+function displayError(error) { 
+	
+	//get a reference to the HTML element for writing result
+	var locationElement = document.getElementById("locationData");
+	
+	//find out which error we have, output message accordingly
+	switch(error.code) {
+	case error.PERMISSION_DENIED:
+		locationElement.innerHTML = "Permission was denied";
+		break;
+	case error.POSITION_UNAVAILABLE:
+		locationElement.innerHTML = "Location data not available";
+		break;
+	case error.TIMEOUT:
+		locationElement.innerHTML = "Location request timeout";
+		break;
+	case error.UNKNOWN_ERROR:
+		locationElement.innerHTML = "An unspecified error occurred";
+		break;
+	default:
+		locationElement.innerHTML = "Who knows what happened...";
+		break;
+}}
+
+function moveOut(){
+}
+
+function next(lat,lon){
+ 	$.post("/geoloc/updateloc/", { latitude: lat, longitude: lon },
+ 		function(data) {
+			var locationElement = document.getElementById("locationData");
+        	if (data.status=='ok'){
+        		locationElement.innerHTML="done.. redirecting... if not click  <a href=\"/profile\">here</a>"
+        		window.location = "/profile/"
+        	}
+        	else{
+        		locationElement.innerHTML="something bad happened"
+        	}
+		
+        		
+   	 	}		
+ 	);
+
+}
+
+getUserLocation();
+</script>
+{% endblock %}
+{% block container %}
+
+<div class="row">
+ <div class="span12" id="locationData">
+ 	<p>Wait a second.. we need to know your location to provide you with tasks.</p>
+ 	<p> 	<a href="javascript:next(0.0,0.0);" >no, i don't want to</a></p>
+ </div>
+</div>
+{% endblock %}
+

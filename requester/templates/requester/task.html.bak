@@ -1,0 +1,8 @@
+{% extends 'requester/base.html' %} 
+{% load crispy_forms_tags %}
+{% block pagetitle %} Task template {% endblock %}
+{% block container %}
+<h1>Create</h1>
+    {% crispy form %}
+
+{% endblock %}

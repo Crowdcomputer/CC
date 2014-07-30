@@ -1,0 +1,34 @@
+{% extends 'requester/base.html' %}
+{% load myfilters %}
+{% load humanize %}
+
+{% block pagetitle %} Profile {% endblock %}
+
+{% block container %}
+
+<h1>Application created by you</h1> 
+<a href="{% url 'd-application-create' %}" title='create a new app' class="btn">Create a new one</a>
+<div class='row'>
+	<table class="table table-hover ">
+		<thead>
+			<th>Identity</th>
+			<th>Title</th>
+			<th>Token</th>
+			<th>Processes</th>
+		</thead>
+		{% for application in application_list  %}
+		<tr>
+			<td>{{forloop.counter	}}</td>
+			<td>{{application.name}}</td>
+			<td><b>{{application.token}}</b></td>
+			<td>{{application.process_set.count}}</td>
+			</td>
+
+		</tr>
+		{% endfor %}
+
+	</table>
+
+</div>
+{% endblock %}
+

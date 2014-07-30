@@ -1,0 +1,24 @@
+{% extends 'general/base.html' %} 
+{% block pagetitle %} Login {% endblock %}
+{% load crispy_forms_tags %}
+
+    {% crispy form %}
+{% block container %}
+
+<div class="row center">
+	<h4 class="lead">Wellcome to the {{ app_name}}. You can login via Facebook or register using your email: </h4>
+	<hr>
+	<div class="span5 ">
+		<h2><a href="{% url 'socialauth_begin' "facebook"  %}?next={{ request.GET.next }}">Login via Facebook</a></h2>
+	</div>
+	<div class="span1"><h3 class="muted">or</h3></div>
+	<div class="span6 center">
+		
+    	{% crispy form %}
+    	<br /> 
+    	<h4><a href="{% url 'register' %}">need a login?</a></h4>
+	</div>
+</div>
+	
+{% endblock %}
+

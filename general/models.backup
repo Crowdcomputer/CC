@@ -1,0 +1,310 @@
+from django.db import models
+import jsonfield
+from django.contrib.auth.models import User
+from datetime import datetime 
+from django.utils.timezone import utc
+from decimal import Decimal
+import logging
+from datetime import date, timedelta
+
+log = logging.getLogger(__name__)
+
+class Language(models.Model):
+    name = models.CharField(max_length=100, default='')
+    fb_id = models.CharField(max_length=100, default='0')
+   
+    def __unicode__(self):
+        return str(self.fb_id)
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User)
+    #do we need login data?
+    #login = models.ForeignKey(Login)
+    name = models.CharField(max_length=100, default='')
+    surname = models.CharField(max_length=100, default='')
+    birthday = models.DateField(default=datetime.now, blank=True)
+    email = models.CharField(max_length=100, default='')
+    locale = models.CharField(max_length=100, default='')
+    picture = models.CharField(max_length=255, default='')
+    gender = models.CharField(max_length=100, default='')
+    hometown = models.CharField(max_length=255, default='')
+    #languages goes as 1-M relation,
+    languages = models.ManyToManyField(Language, blank=True, null=True)
+    latitude = models.FloatField(default=0.0)
+    longitude = models.FloatField(default=0.0)
+    reward_dollars = models.DecimalField(decimal_places=2, max_digits=8, default=Decimal('0.0'))
+    reward_time = models.IntegerField(default=0)
+#    checkins = models.TextField()
+
+    def __unicode__(self):
+        return self.name + ' ' + self.surname
+    
+    @property
+    def count_tasks(self):
+        return len(self.user.task_set.all())
+    @property
+    def count_responses(self):
+        return len(self.user.response_set.all())
+    
+    
+class Application(models.Model):
+    user = models.ForeignKey(User)
+    name = models.CharField(max_length=200, default='', unique=True)
+    token = models.CharField(max_length=200, default='')
+    url = models.URLField(max_length=400, default='', null=True, blank=True)
+
+    def __unicode__(self):
+        return self.name
+    
+class Process(models.Model):
+    user = models.ForeignKey(User)
+    title = models.CharField(max_length=200, default='')
+    description = models.CharField(max_length=1000, default='')
+    date_created = models.TimeField(auto_now_add=True, auto_now=False)
+    STATUS_CHOISE = (('PR', 'In process'), ('ST', 'Stopped'), ('FN', 'Finished'), ('DL', 'Deleted'),)
+    status = models.CharField(max_length=2, choices=STATUS_CHOISE, default='ST')
+    application = models.ForeignKey(Application)
+    
+    def __unicode__(self):
+        return '[' + str(self.id) + '] ' + str(self.title)    
+    @property
+    def is_inprocess(self):
+        return self.status == 'PR'
+    
+    @property
+    def is_stopped(self):
+        return self.status == 'ST'
+    @property
+    def is_finished(self):
+        return self.status == 'FN'
+    @property
+    def is_deleted(self):
+        return self.status == 'DL'
+    @property        
+    def int_status(self):
+        if self.is_deleted:
+            return 1
+        else:
+            return 0
+    def stop(self):
+        self.status = 'ST'
+        self.save()
+    
+    def finish(self):
+        self.status = 'FN'
+        self.save()
+        
+    def delete_status(self):
+        self.status = 'DL'
+        self.save()
+        
+'''type choice for the reward model'''
+REWARDS = (('CCM', 'CrowdComputer'), ('USD', 'Dollars'), ('EUR', 'Euro'), ('COF', 'Coffies'),)
+        
+class Reward(models.Model):
+#    description = models.CharField(max_length=100, default='')
+    quantity = models.DecimalField(decimal_places=2, max_digits=8, default=Decimal('0.0'), blank=True, null=True)
+    type = models.CharField(max_length=3, choices=REWARDS, default='CCM')
+      
+#constants for the split choicex 
+NO_SPLIT = 1
+SET_N = 2
+SET_NM = 3
+COMBINATION = 4
+
+
+class Task(models.Model):
+    user = models.ForeignKey(User)
+    process = models.ForeignKey(Process)
+    title = models.CharField(max_length=200, default='')
+    description = models.CharField(max_length=1000, default='')
+    TASK_TYPE_CHOISE = (('HT', 'Human task'), ('MT', 'Machine task'))
+#    we should change this name, type is reserved
+    category = models.CharField(max_length=2, choices=TASK_TYPE_CHOISE, default='HT')
+    input_url = models.URLField(max_length=400, default='', null=True, blank=True)
+    input_task = models.ManyToManyField('self', null=True, blank=True, related_name="input_from_task", symmetrical=False)
+    input_task_field = models.CharField(max_length=200, default='', blank=True)
+    SPLIT_CHOICE = ((1, 'No split'), (2, 'Set of N'), (3, 'Set of N with M overlapp'), (4, 'Combinations'),)
+    split = models.IntegerField(choices=SPLIT_CHOICE, default=1)
+    split_field_N = models.PositiveSmallIntegerField(default=1, blank=True, null=True)
+    split_field_M = models.PositiveSmallIntegerField(default=1, blank=True, null=True)
+#    redirect = models.ForeignKey('self', null=True, blank=True, related_name="redirect_task", default=1)
+    instances_required = models.IntegerField(default=1)
+    date_created = models.TimeField(auto_now_add=True, auto_now=False)
+    date_deadline = models.DateTimeField(default=lambda: (datetime.now() + timedelta(days=7)), auto_now_add=False)
+    uuid = models.CharField(max_length=36, default='')
+    STATUS_CHOISE = (('PR', 'In process'), ('ST', 'Stopped'), ('FN', 'Finished'), ('DL', 'Deleted'),)
+    status = models.CharField(max_length=2, choices=STATUS_CHOISE, default='ST')
+    is_unique = models.BooleanField(default=True)
+#    reward, new table external. it can be null, just in case.
+    reward = models.OneToOneField(Reward, null=True, blank=True)
+#TODO: this is not used
+    parameters = jsonfield.JSONField()
+    isMturk = models.BooleanField(default=False)
+
+#    create final for eachl
+ 
+    def __unicode__(self):
+        return '[' + str(self.id) + '] ' + str(self.title)
+    
+    @property
+    def is_expired(self):
+        # I don't think that we should check here - if it is stopped or in process. expired- means only reaching deadline
+        # if (self.is_stopped or self.is_inprocess):
+        # if (self.date_deadline>datetime.utcnow().replace(tzinfo=utc)):
+        return (self.date_deadline < datetime.utcnow().replace(tzinfo=utc)) 
+    """@property
+    def next_input_response(self): 
+        #Here we do the raw MySql query, which takes the first response from input task, which is not covered by N responses in this task
+        next_response = Response.objects.raw('''
+          select next_response.* 
+            from earth_response as next_response
+                inner join (
+                    SELECT responseA.id, taskB.responses_required, COUNT( responseB.id ) AS amount
+                    FROM earth_task AS taskB
+                        LEFT JOIN earth_task AS taskA ON taskB.input_task_id = taskA.id
+                        LEFT JOIN earth_response AS responseA ON taskA.id = responseA.task_id
+                        LEFT JOIN earth_response AS responseB ON taskB.id = responseB.task_id and responseB.status='FN'
+                            AND responseB.parent_id = responseA.id
+                    WHERE taskB.id = ''' + str(self.id) + '''
+                        AND (
+                        responseA.output LIKE  "http%%"
+                        )
+                        GROUP BY responseA.id, taskB.responses_required
+                        Having COUNT( responseB.id )<taskB.responses_required) as resp on resp.id=next_response.id
+              ''')
+        return next_response
+        """
+    
+    @property
+    def get_input_url(self):
+        #if the input url is given- we show it, otherwise we generates the input_url from input_task.response
+        #if self.input_is_task:
+        #    response = self.next_input_response
+            #if (len(response) > 0):
+        #    return response[0].output
+            #else:
+            #return ' '
+        #else: 
+        return self.input_url
+            
+    @property
+    def input_is_task(self):
+        if (self.input_task.count() > 0):
+            return True
+        else:
+            return False
+    
+            
+    @property
+    def next_input_response_id(self):
+        if self.is_inprocess:
+            if (self.TaskInstance_set.filter(status="ST")):
+                return self.TaskInstance(status="ST")[0].id
+        return 0    
+            
+    
+    @property
+    def get_task_url(self):
+        return '/exe/execute/' + str(self.uuid)
+    @property
+    def get_next_task_url(self):
+        if (self.redirect):
+            return '/exe/execute/' + str(self.redirect.uuid)
+        else:
+            return '/exe/list/'
+       
+    @property
+    def is_inprocess(self):
+        return self.status == 'PR'
+    
+    @property
+    def is_stopped(self):
+        return self.status == 'ST'
+    @property
+    def is_finished(self):
+        return self.status == 'FN'
+    @property
+    def is_deleted(self):
+        return self.status == 'DL'
+    @property
+    def instances_given(self):
+        return self.taskinstance_set.filter(status='FN').count()
+    @property
+    def instances_available(self):
+        return self.taskinstance_set.filter(status='ST').count() 
+    @property
+    def instances_amount(self):
+        return self.taskinstance_set.all().count()    
+    def start(self):
+        self.status = 'PR'
+        self.save()
+ 
+        
+    def stop(self):
+        self.status = 'ST'
+        self.save()
+    
+    def finish(self):
+        self.status = 'FN'
+        self.save()
+        
+    def delete_status(self):
+        self.status = 'DL'
+        self.save()
+
+    @property        
+    def int_status(self):
+        if self.is_deleted:
+            return 1
+        else:
+            return 0
+        
+class Data(models.Model):
+    value = jsonfield.JSONField()
+    def __unicode__(self):
+        return str(self.id)
+    
+class TaskInstance(models.Model):
+    #executor
+    user = models.ForeignKey(User, null=True, blank=True)
+    #mto1: many Responses generated for one task
+    task = models.ForeignKey(Task)
+    STATUS_CHOISE = (('ST', 'Stopped'), ('PR', 'Process'), ('FN', 'Finished'))
+    status = models.CharField(max_length=2, choices=STATUS_CHOISE, default='ST')
+    date_created = models.DateTimeField(auto_now_add=True, auto_now=False)
+    date_started = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+    date_finished = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+    input = models.ForeignKey(Data, null=True, blank=True, related_name="input_data")
+    output = models.ForeignKey(Data, null=True, blank=True, related_name="output_data")
+    uuid = models.CharField(max_length=36, default='')
+    parameters = jsonfield.JSONField()
+
+    @property
+    def is_inprocess(self):
+        return self.status == 'PR'
+    @property
+    def is_finished(self):
+        return self.status == 'FN'
+    
+    def __unicode__(self):
+        return str(self.id)
+
+    def start(self):
+        self.status = 'PR'
+        self.date_started = datetime.now()
+        self.save()
+        
+    def finish(self):
+        self.status = 'FN'
+        self.date_finished = datetime.now()
+        self.save()
+        
+
+
+
+#def create_user_profile(sender, instance, created, **kwargs):
+#    if created:
+#        UserProfile.objects.create(user=instance)
+
+#post_save.connect(create_user_profile, sender=User)
