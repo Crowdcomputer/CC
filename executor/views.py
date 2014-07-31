@@ -1,3 +1,4 @@
+
 # Create your views here.
 from django.core.context_processors import csrf
 from django.contrib import messages
@@ -344,10 +345,11 @@ def TaskInstanceFinish(request, uuid):
 
             message['success'] = True
             message['redirect'] = taskinstance.task.process.application.url
-
-#            check if task has validation.
+            log.debug('message %s',message)
+#            check if task has validation
             validation = taskinstance.task.humantask.validation
-            if validation is not None:
+            log.debug('validation %s',validation)
+            if  validation is not None:
                 if validation != "VALID":
                     taskinstance.validation_status()
                     owner = taskinstance.task.owner
@@ -389,7 +391,6 @@ def TaskInstanceFinish(request, uuid):
                     pars['validation'] = True
 #                    taskinstance.save()
                     taskinstance.finish()
-
                     checkIfProcessFinished(taskinstance.task.process)
 #                startProcess(taskinstance.task.validation,taskinstance.pk)
             else:

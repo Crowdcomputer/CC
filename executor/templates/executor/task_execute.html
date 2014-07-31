@@ -60,13 +60,18 @@ Finish the task
 	});
 	function SendPostByFormSubmit(input_data, form_id) {
 		var inputs = '';
+		console.log(input_data);
+		if (input_data == null)
+			return;
 		var i = 0;
 		var submit_button = 0;
 		var json = jQuery.parseJSON(input_data);
-		console.log("json" + json.length);
+		if (json == null)
+			return;
+		//console.log("json" + json.length);
 		for ( i = 0; i < json.length; i++)
 			for (var key in json[i]) {
-				console.log(key + " " + json[i][key] ) 
+				//console.log(key + " " + json[i][key] ) 
 				if (key != 'submit')
 					inputs += '<input type="hidden" name="' + key + '[]" value="' + json[i][key] + '" />';
 				else {

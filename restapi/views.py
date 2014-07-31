@@ -186,7 +186,8 @@ class StartTask(APIView):
         :return: :raise:
         """
         task = self.get_object(pk,request.user)
-        data = request.DATA.get('data', None)
+        
+	data = request.DATA.get('data', None)
         name_receive = request.DATA.get('name', None)
         task_type = task.parameters['type']
         log.debug("type %s" % task_type)
@@ -244,7 +245,11 @@ class StartTask(APIView):
             raise "no type specified"
         activitiTask,created = TaskActiviti.objects.get_or_create(task=task,receive=name_receive)
         result={}
-        if ret:
+        task.process.status='PR'
+	task.process.save()
+	log.debug("process is %s",task.process.status)
+
+	if ret:
             result['result']='ok'
             return Response(result, status.HTTP_200_OK)
         else:

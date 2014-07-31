@@ -854,18 +854,33 @@ def startProcess(process,process_id, data):
     return True
 
 def checkIfProcessFinished(process):
+    log.debug("check if finished %s",process)
+    #bug, dunno why it's FN even when it's no FN the process
+    #if True==False:
     if process.status=='FN':
-        return True
+        for task in process.task_set.all():
+	   #handles the creation of new task
+	   if task.status=='PR':
+              process.status='PR'
+              process.save()
+              log.debug('restore to PR')
+	      return False
+	return True
     else:
         ret=checkIfProcessFinished2(process)
         if ret:
             process.status='FN'
-            process.save()
+	    process.save()
+        return ret
+
 def checkIfProcessFinished2(process):
     vl=[]
     con=True
+    log.debug("size %s",len(process.task_set.all()))
     for task in process.task_set.all():
-        if task.humantask:
+        log.debug(task)
+	if task.humantask:
+	    log.debug('is human')
             if task.humantask.validation:
                 for ti in task.humantask.taskinstance_set.all():
                     if ti.validation:
