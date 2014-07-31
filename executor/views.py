@@ -347,7 +347,7 @@ def TaskInstanceFinish(request, uuid):
 
 #            check if task has validation.
             validation = taskinstance.task.humantask.validation
-            if  validation is not None:
+            if validation is not None:
                 if validation != "VALID":
                     taskinstance.validation_status()
                     owner = taskinstance.task.owner
