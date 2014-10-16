@@ -12,8 +12,9 @@ from django.views.generic.list import ListView
 from executor.forms import BidForm
 from general.models import Task, TaskInstance, Data, UserProfile, HumanTask, \
     Process
+from general.tasks import triggerReceiverInstance
 from general.utils import createInstance, copyReqParameter, createObject, \
-    startProcess, checkIfProcessFinished
+    startProcess, checkIfProcessFinished, startProcessTactic
 import json
 import logging
 from uuid import uuid4
@@ -41,7 +42,10 @@ class TaskListExe(ListView):
 
     def get_queryset(self):
 #        only humantasks
-        queryset = Task.objects.select_subclasses("humantask").filter(status='PR').filter(humantask__platform="CC")
+
+        # queryset = Task.objects.select_subclasses("humantask").filter(status='PR').filter(humantask__platform="CC")
+        queryset = Task.objects.filter(status='PR').filter(humantask__platform="CC")
+        log.debug("queyset %s",len(queryset))
         if 'id' in self.kwargs:
             log.debug("looking for %s",self.kwargs['id'])
             try:
@@ -49,6 +53,7 @@ class TaskListExe(ListView):
                 queryset.filter(owner=owner)
             except:
                 log.debug("there's no user")
+        log.debug("queyset %s",len(queryset))
         return queryset
 
 def baseChecking(request, task):
@@ -134,7 +139,7 @@ def TaskExecute(request, uuid):
             return redirect(reverse('e-home'))
 
 
-
+#
 #    else:
 #        # if there is an instance assigned to this user - we return it
 #        log.debug("there is")
@@ -150,6 +155,7 @@ def TaskExecute(request, uuid):
 #            log.debug("no exec")
     # data=''
     else:
+        #TODO: if it's a "custom" we have to check if it's in progress and that's it.
         if len(task.taskinstance_set.filter(executor=request.user, status='PR')) == 0 and task.parameters["type"] == "bid":
             return redirect(reverse('bid', kwargs={'uuid':uuid}))
         else:
@@ -279,6 +285,7 @@ def TaskInstanceUpdate(request, uuid):
 # @login_required
 @csrf_protect
 def TaskInstanceFinish(request, uuid):
+    #TODO: if it's a custom we have to call the finishintance notificator.
     ''' Finishes the instance '''
     message = {}
 
@@ -386,9 +393,12 @@ def TaskInstanceFinish(request, uuid):
 #                    checkIfProcessFinished(taskinstance.task.process)
                 else:
                     pars = taskinstance.parameters
-                    if pars is None:
+                    log.debug("is pars none? %s %s" % (pars is None,pars))
+                    if pars is None or pars == "":
                         pars = {}
                     pars['validation'] = True
+                    taskinstance.parameters=pars
+                    taskinstance.save()
 #                    taskinstance.save()
                     taskinstance.finish()
                     checkIfProcessFinished(taskinstance.task.process)
@@ -398,6 +408,8 @@ def TaskInstanceFinish(request, uuid):
                 taskinstance.finish()
 #                this evaluates just the validation process, not the main.
                 p_pars = taskinstance.task.process.parameters
+                if "type" in taskinstance.task.parameters and taskinstance.task.parameters['type']=='custom':
+                    triggerReceiverInstance(taskinstance)
                 if 'validation_process' in p_pars:
                     t_process = Process.objects.get(id=p_pars['validation_process'])
                     checkIfProcessFinished(t_process)

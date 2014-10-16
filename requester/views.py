@@ -592,7 +592,7 @@ def uploadProcess(request):
         form = None
         if not user.groups.filter(name='bpmn').exists():
             messages.error(request, "You don't have the rights to use this feature. Please write to stefano@crowdcomputer.org if you need it.")
-        else: 
+        else:
             form = UploadFileForm()
     return render_to_response('requester/creation.html', {'form': form}, context_instance=RequestContext(request))
 

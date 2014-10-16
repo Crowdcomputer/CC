@@ -76,7 +76,25 @@ def triggerReceiver(task, results):
     data = {}
     data['activityId'] = task.taskactiviti.receive+"-receive"
     name = task.parameters["data_name"]
-    data[name] = json.dumps(results)
+    # data[name] = json.dumps(results)
+    dumps = json.dumps(data)
+    log.debug("dumps data %s", dumps)
+    response = requests.post(url, data=dumps, auth=HTTPBasicAuth(username, password))
+    log.debug(response.text)
+
+@task()
+# fimd rhe process id
+def triggerReceiverInstance(taskinstance):
+#    if task.status=='FN':
+#        return
+    username=settings.ACTIVITI_USERNAME
+    password=settings.ACTIVITI_PASSWORD
+#http://localhost:8080/activiti-rest/service/process-instance/149/signal
+    url = settings.ACTIVITI_URL + "/process-instance/"+taskinstance.parameters['process_tactics_id']+"/signal"
+    data = {}
+    data['activityId'] = taskinstance.parameters['receiver']
+    name = taskinstance.task.parameters["data_name"]
+    data[name] = taskinstance.output_data.value
     dumps = json.dumps(data)
     log.debug("dumps data %s", dumps)
     response = requests.post(url, data=dumps, auth=HTTPBasicAuth(username, password))

@@ -19,25 +19,25 @@ class IsOwnerOrGoOut(permissions.BasePermission):
 #        log.debug("IsOwnerOrGoOut")
         # Skip the check unless this is an object-level test
         if obj is None:
-#            log.debug("obj is none")
+            log.debug("obj is none")
             return True
         #if it's the instance        
         if isinstance(obj, User):
 #            log.debug("obj is user")
             return True
         if hasattr(obj, 'task'):  
-#            log.debug("task %s",obj.task.owner == request.user)
+            log.debug("task %s",obj.task.owner == request.user)
             return obj.task.owner == request.user
 #        this goes after since even the instance has a user but it's not the one we have to check
         elif hasattr(obj, 'owner'):
-#            log.debug("owner %s",obj.owner == request.user)
+            log.debug("owner %s",obj.owner == request.user)
             return obj.owner == request.user
 #        todo not sure this is fine for instnaces.
         elif hasattr(obj, 'executor'):  
-#            log.debug("executor %s",obj.executor == request.user )
-            return obj.executor == request.user
+             log.debug("executor %s",obj.executor == request.user )
+             return obj.executor == request.user
         else:
-#            log.debug("none of above")
+            log.debug("none of above")
             return False
 
 #check if belongs to the app
@@ -53,12 +53,13 @@ class IsFromApp(permissions.BasePermission):
             return True
         
         apptoken = request.META.get('HTTP_APP_ID')
+        log.debug("apptoken " + apptoken)
         if apptoken is None:
-#            log.debug('apptoken is none')
+            log.debug('apptoken is none')
             return False
         
         if obj is None:
-#            log.debug('obj none')
+            log.debug('obj none')
             return True
         #if it's the instance        
         # Write permissions are only allowed to the owner of the snippet
@@ -83,5 +84,5 @@ class IsFromApp(permissions.BasePermission):
             return False
 #        log.debug("token %s, apptoken %s",(token,apptoken))
         ret = (token == apptoken)
-        #log.debug('auth res %s %s vs %s'% (ret,token,apptoken))
+        log.debug('auth res %s %s vs %s'% (ret,token,apptoken))
         return ret

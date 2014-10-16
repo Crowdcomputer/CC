@@ -752,7 +752,12 @@ def rejectUser(taskinstance):
     return
 
 def rewardUsers(task):
+
     log.debug("rewarding for %s",task.pk)
+
+    # if it's a custom type do not run the normal rewarding
+    if 'type' in task.parameters and task.parameters['type'] in ['custom']:
+        return True
     ht = task.humantask
     reward = ht.reward
     log.debug("reward strategy %s", reward.strategy)
@@ -853,6 +858,33 @@ def startProcess(process,process_id, data):
     process.save()
     return True
 
+def startProcessTactic(task, data):
+#    log.debug("starting  %s" % process_id)
+#    log.debug("data %s",json.dumps(data))
+#    url = settings.ACTIVITI_URL + "/process-instance"
+#    response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
+#    log.debug(response.text)
+#    jsonresp = response.json()
+#    processInstanceId = jsonresp.get("id")
+#    processDefinition = jsonresp.get("processDefinitionId")
+#    process_activiti = ProcessActiviti(process=process, key=process_id, instanceID=processInstanceId, processDefinition=processDefinition)
+#    process_activiti.save()
+#    log.debug(response.text)
+#    return True
+    log.debug("data %s",data)
+    url = settings.ACTIVITI_URL + "/runtime/process-instances"
+    response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
+    log.debug(response.text)
+    jsonresp = response.json()
+    pars = task.parameters
+    pars['process_id']=jsonresp.get("id")
+    pars['process_instance_id']=jsonresp.get("processDefinitionId")
+    task.parameters=pars
+    task.save()
+
+    return True
+
+
 def checkIfProcessFinished(process):
     log.debug("check if finished %s",process)
     #bug, dunno why it's FN even when it's no FN the process
@@ -920,7 +952,7 @@ def checkIfFinished( task  ):
             task.status = 'FN'
             task.save()
             return True
-    elif 'type' in task.parameters and task.parameters['type'] in ['marketplace', 'newsletter'] :
+    elif 'type' in task.parameters and task.parameters['type'] in ['marketplace', 'newsletter']:
 #        log.info("type %s",task.parameters['type'])
         n = len(task.humantask.taskinstance_set.filter(status="FN"))
         tot = task.humantask.taskinstance_set.count()

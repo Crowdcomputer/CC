@@ -1,4 +1,5 @@
 from django.contrib import admin
+from rest_framework.authtoken.models import Token
 from models import UserProfile, Language,  Task, TaskInstance, Data, Process,Application,Reward
 from general.models import HumanTask, TaskActiviti, ProcessActiviti
 #this is for adding the userprofile inthe admin part
@@ -13,3 +14,4 @@ admin.site.register(Application)
 admin.site.register(HumanTask)
 admin.site.register(ProcessActiviti)
 admin.site.register(TaskActiviti)
+admin.site.register(Token)

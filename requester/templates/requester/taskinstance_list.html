@@ -38,10 +38,14 @@
 			<td>{{taskinstance.output_data.value|jsonify}}</td>
 			<td>{% if "validation"  not in taskinstance.parameters %}
 					<span class="badge badge-warning">?</span>
-				{% elif taskinstance.parameters.validation == True %}
+				{% elif taskinstance.parameters.validation == True%}
 				<span class="badge badge-success"><i class="icon-ok"></i></span>
-				{% elif taskinstance.parameters.validation == False %}
+				{% elif taskinstance.parameters.validation == False%}
 				<span class="badge badge-important"><i class="icon-remove"></i></span>
+                {% elif taskinstance.parameters.validation > 50 and taskinstance.parameters.validation <= 100%}
+				<span class="badge badge-success"> {{  taskinstance.parameters.validation }}</span>
+				{% elif taskinstance.parameters.validation >= 0 and taskinstance.parameters.validation <= 50 %}
+				<span class="badge badge-important"> {{  taskinstance.parameters.validation }}</span>
 				{% else  %}
 				<span class="badge badge-warning">{{taskinstance.parameters.validation}}</span>
 				{% endif %}

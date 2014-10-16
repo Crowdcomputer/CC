@@ -48,7 +48,6 @@ class ProcessCreate(CreateAPIView):
             user = User.objects.get(id=1)
         obj.owner = user
         token = self.request.META.get('HTTP_APP_ID')
-        log.debug('token for the app is %s', token)
         if token:
             obj.application = Application.objects.get(token=token)
         else:

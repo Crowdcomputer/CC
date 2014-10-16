@@ -17,17 +17,18 @@
 			<th>Requester</th>
 			<th></th>
 		</thead>
+        {{ task_list|length }}
 		{% for task in task_list  %}
 		<tr class="{{task.status|to_tr_class}}">
 			<td>{{task.title}}</td>
 			<td>{{task.description}}</td>
-			<td>{{task.reward.quantity}}({{task.reward.get_type_display}})</td>
-			<td>{{task.instances_available}}</td>
+			<td>{{task.humantask.reward.quantity}}({{task.humantask.reward.get_type_display}})</td>
+{#			<td>{{task.instances_available}}</td>#}
 			<td><a href="{% url "e-list-owner" task.owner.pk %}">{{task.owner.username}}</a></td>
 			<td>
 			<div class="btn-group">
-			
-				<a href='{% url "e-execute" task.uuid %}' class='btn tip' title='go to the execution page' ><i class='icon-globe'></i></a>
+
+				<a href='{% url "e-execute" task.humantask.uuid %}' class='btn tip' title='go to the execution page' ><i class='icon-globe'></i></a>
 
 			</div>
 			</td>
