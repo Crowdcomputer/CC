@@ -68,7 +68,7 @@
 		</thead>
 		{% for task in task_list  %}
 		<tr class="{{task.status|to_tr_class}}">
-			<td>{{task.title}}</td>
+			<td>{{ task.pk }}-{{task.title}}</td>
 			<td>{{task.description}}</td>
 			<td>{{task.humantask.platform}} {{task.parameters.type}} - {{task.humantask.reward.get_strategy_display}}</td>
 			{% comment %}
@@ -169,7 +169,7 @@
 	</style>
 	<script src="{% static 'js/flow-visualization.js' %}" type="text/javascript" charset="utf-8"></script>
 {% else %}
-	<h2>It's a BPMN process</h2>
+	<h2 class="center">Only crowd tasks are shown here</h2>
 
 {% endif %}
 {% endblock %}

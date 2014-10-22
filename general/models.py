@@ -30,7 +30,7 @@ class Language(models.Model):
 
 # if we don't switch to 1.5 this is fine
 class UserProfile(models.Model):
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User,related_name="profile")
     # do we need login data?
     # login = models.ForeignKey(Login)
     name = models.CharField(max_length=100, default='')
@@ -50,7 +50,7 @@ class UserProfile(models.Model):
     # checkins = models.TextField()
 
     def __unicode__(self):
-        return self.name + ' ' + self.surname
+        return self.user.username
 
     @property
     def count_tasks(self):
@@ -82,7 +82,8 @@ class Process(models.Model):
     parameters = jsonfield.JSONField()
     application = models.ForeignKey(Application)
     status = models.CharField(max_length=2, choices=STATUS_CHOISE_PROCESS, default='ST', blank=True)
-    validates = models.OneToOneField('TaskInstance', blank=True, null=True)
+    # validates = models.OneToOneField('TaskInstance', blank=True, null=True)
+    # rewards = models.OneToOneField('TaskInstance', blank=True, null=True)
 
     def __unicode__(self):
         return '[' + str(self.id) + '] ' + str(self.title)
@@ -306,7 +307,8 @@ class TaskInstance(models.Model):
     parameters = jsonfield.JSONField()
     quality = models.PositiveSmallIntegerField(validators=[MaxValueValidator(100)], default=0)
 
-    validation = models.OneToOneField(Process, null=True, blank=True)
+    validation_process = models.OneToOneField(Process, null=True, blank=True,related_name="validates")
+    reward_process = models.OneToOneField(Process, null=True, blank=True,related_name="rewards")
 
     def __unicode__(self):
         return str(self.id)
@@ -392,3 +394,4 @@ class TaskActiviti(models.Model):
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
+        UserProfile.objects.create(user=instance)

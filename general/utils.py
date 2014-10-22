@@ -54,7 +54,7 @@ def getResults(task):
 #                ret.append(value)
     log.debug("results: %s", ret)
     log.debug("merge %s", task.parameters['merge'])
-    if task.parameters['merge'] is not None and task.parameters['merge'] == False:
+    if "merge" not in task.parameters or task.parameters['merge'] is not None and task.parameters['merge'] == False:
         return mergeData(ret)
     else:
         return ret
@@ -844,11 +844,12 @@ def startProcess(process,process_id, data):
 #    log.debug(response.text)
 #    return True
     log.debug("starting  %s" % process_id)
-    log.debug("data %s",data)
+    log.debug("data %s",json.dumps(data))
     url = settings.ACTIVITI_URL + "/runtime/process-instances"
     response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
-    log.debug(response.text)
+    log.debug("response: " + response.text)
     jsonresp = response.json()
+    log.debug(jsonresp);
     processInstanceId = jsonresp.get("id")
     processDefinition = jsonresp.get("processDefinitionId")
     process_activiti = ProcessActiviti(process=process, key=process_id, instanceID=processInstanceId, processDefinition=processDefinition)
@@ -859,23 +860,27 @@ def startProcess(process,process_id, data):
     return True
 
 def startProcessTactic(task, data):
-#    log.debug("starting  %s" % process_id)
-#    log.debug("data %s",json.dumps(data))
-#    url = settings.ACTIVITI_URL + "/process-instance"
-#    response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
-#    log.debug(response.text)
-#    jsonresp = response.json()
-#    processInstanceId = jsonresp.get("id")
-#    processDefinition = jsonresp.get("processDefinitionId")
-#    process_activiti = ProcessActiviti(process=process, key=process_id, instanceID=processInstanceId, processDefinition=processDefinition)
-#    process_activiti.save()
-#    log.debug(response.text)
-#    return True
     log.debug("data %s",data)
     url = settings.ACTIVITI_URL + "/runtime/process-instances"
     response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
     log.debug(response.text)
     jsonresp = response.json()
+
+    pars = task.parameters
+    pars['process_id']=jsonresp.get("id")
+    pars['process_instance_id']=jsonresp.get("processDefinitionId")
+    task.parameters=pars
+    task.save()
+
+    return True
+
+def startProcessInternal(taskinstance, process, data):
+    log.debug("data %s",data)
+    url = settings.ACTIVITI_URL + "/runtime/process-instances"
+    response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
+    log.debug(response.text)
+    jsonresp = response.json()
+
     pars = task.parameters
     pars['process_id']=jsonresp.get("id")
     pars['process_instance_id']=jsonresp.get("processDefinitionId")
@@ -915,7 +920,7 @@ def checkIfProcessFinished2(process):
 	    log.debug('is human')
             if task.humantask.validation:
                 for ti in task.humantask.taskinstance_set.all():
-                    if ti.validation:
+                    if ti.validation_process:
                         vl.append(ti.validation)
             con=checkIfFinished(task)
             if not con:
@@ -944,6 +949,7 @@ def checkIfFinished( task  ):
 #            TODO: call the rewarding 
             rewardUsers(task)
             results = getResults(task)
+
             if settings.CELERY:
                 triggerReceiver.delay(task, results)
             else:

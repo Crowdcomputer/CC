@@ -1,0 +1,42 @@
+{% extends 'executor/base.html' %}
+{% load jsonify %}
+
+<!--Div that block the iframe-->
+{% block container %}
+    <div class="row">
+        <div span="12">
+            <h1>We have received your request. This page will automatically refresh and bring you to your task </h1>
+            <small>Waiting time <span id="timer"></span>s</small>
+        </div>
+
+    </div>
+{% endblock %}
+
+
+
+{% block script_footer %}
+    <script>
+        var timer = 5000;//15 secs
+        var counter = timer / 1000;
+        function reload() {
+            window.location.href = window.location.href;
+        };
+        function countdown() {
+            console.log("counter " + counter);
+            if (counter <= 0)
+                reload();
+            else {
+                counter = counter - 1;
+                $("#timer").text(counter);
+                setTimeout('countdown()', 1000);
+            }
+        };
+        $(document).ready(function(){
+            console.log('countdownd')
+            setTimeout('countdown()', 1000);
+        });
+
+    </script>
+{% endblock %}
+</body>
+</html>

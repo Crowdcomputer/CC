@@ -140,10 +140,3 @@ def errorPage(request,redirect=None, message = None):
         messages.error(request, message)
     return render_to_response('general/error.html', {'redirect':redirect}, context_instance=RequestContext(request))
 
-from crowdcomputer.init_db import createAdmin, initAppsAndCC
-def Init(request):
-    if settings.DEBUG:
-        createAdmin('ste', 's', 'stefano.tranquillini@gmail.com')
-    else:
-        createAdmin('dictator', 'this.is.slevery', 'email@example.com')
-    initAppsAndCC()

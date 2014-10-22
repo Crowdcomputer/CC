@@ -59,3 +59,4 @@ settings_.py
 general/migrations
 models.py
 permissions.py
+sqlite._db

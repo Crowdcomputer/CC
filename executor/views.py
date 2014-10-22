@@ -9,10 +9,12 @@ from django.shortcuts import get_object_or_404, render_to_response, redirect
 from django.template import RequestContext
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic.list import ListView
+import requests
+from requests.auth import HTTPBasicAuth
 from executor.forms import BidForm
 from general.models import Task, TaskInstance, Data, UserProfile, HumanTask, \
     Process
-from general.tasks import triggerReceiverInstance
+from general.tasks import triggerReceiverInstance, queryProcessForPick
 from general.utils import createInstance, copyReqParameter, createObject, \
     startProcess, checkIfProcessFinished, startProcessTactic
 import json
@@ -364,7 +366,7 @@ def TaskInstanceFinish(request, uuid):
                     process = Process(title="Validation for " + str(taskinstance.task.title), description="Validation process for task " + str(taskinstance.pk), owner=owner, application=app)
                     process.save()
                     taskinstance.validation = process
-                    process.validates = taskinstance
+                    # process.validates = taskinstance
                     taskinstance.save()
 
                     data = {}
@@ -410,11 +412,12 @@ def TaskInstanceFinish(request, uuid):
                 p_pars = taskinstance.task.process.parameters
                 if "type" in taskinstance.task.parameters and taskinstance.task.parameters['type']=='custom':
                     triggerReceiverInstance(taskinstance)
-                if 'validation_process' in p_pars:
-                    t_process = Process.objects.get(id=p_pars['validation_process'])
-                    checkIfProcessFinished(t_process)
                 else:
-                    checkIfProcessFinished(taskinstance.task.process)
+                    if 'validation_process' in p_pars:
+                        t_process = Process.objects.get(id=p_pars['validation_process'])
+                        checkIfProcessFinished(t_process)
+                    else:
+                        checkIfProcessFinished(taskinstance.task.process)
 
 #            ToDO:
 #            Check if task is validation, in case update the task instance it refers to.
@@ -438,3 +441,25 @@ def TaskInstanceFinish(request, uuid):
 
 
 
+def TaskPick(request, id):
+    task = get_object_or_404(HumanTask, pk=id)
+    basecheck = baseChecking(request, task)
+    if  basecheck is not None:
+        return basecheck
+    instances_user =task.taskinstance_set.filter(executor=request.user, status='PR')
+    log.debug(len(instances_user))
+    if (len(instances_user)>0):
+        return redirect(reverse("e-execute",args=(task.uuid,)))
+    ret = queryProcessForPick(task,request.user)
+    # redirect to wait page..
+    if ret:
+        return render_to_response('executor/pick.html', {}, context_instance=RequestContext(request))
+    else:
+        messages.info(request, 'We are not able to pick a task instance for you at this moment, try later or try another task')
+        return redirect(reverse("e-list"))
+
+    # everything is fine here
+    # invoke the picktask, passing the workerid
+
+
+    #then redirect to the page that shows the message of wait 30 second.
