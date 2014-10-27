@@ -29,11 +29,18 @@ urlpatterns = patterns('',
     url(r'^/process/(?P<process_id>\d+)/task/(?P<task_id>\d+)/cvs/$', views.exportcsv, name='r-task-csv'),
 
     url(r'^/process/(?P<process_id>\d+)/task/(?P<task_id>\d+)/taskinstances/$', login_required(views.TaskInstanceList.as_view()), name='r-taskinstances'),
+
     url(r'^/process/(?P<process_id>\d+)/task/(?P<task_id>\d+)/delete/$', views.TaskDelete, name='r-task-delete'),
     url(r'^/process/(?P<process_id>\d+)/task/(?P<task_id>\d+)/start/$', views.TaskStartStop, name='r-task-start'),
     url(r'^/process/(?P<process_id>\d+)/task/(?P<task_id>\d+)/stop/$', views.TaskStop, name='r-task-stop'),
 
     url(r'^/process/upload/$', views.uploadProcess, name='bpmn-upload'),
+
+    # better without many nesting
+    url(r'^/task/(?P<task_id>\d+)/validate/$', login_required(views.TaskValidate), name='r-task-validate'),
+    url(r'^/taskinstance/(?P<task_instance_id>\d+)/validate/$', login_required(views.TaskInstanceValidate), name='r-taskinstance-validate'),
+
+
 
 #    url(r'^/process/(?P<process_id>\d+)/task/(?P<task_id>\d+)/finish/$', views.TaskFinish, name='r-task-finish'),
 

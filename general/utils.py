@@ -1,41 +1,42 @@
 # from general.models import TaskInstance, Data
 from timeit import itertools
 from uuid import uuid4
-from django.db import transaction
 import logging
-from general.models import Data, TaskInstance, ProcessActiviti, UserProfile
-import crowdcomputer
-from general.mturk import mTurk
+from decimal import Decimal
+import json
+
+from django.db import transaction
 from django.utils import timezone
 from django.utils.datetime_safe import datetime
 from django.utils.timezone import is_aware
 from django.core.urlresolvers import reverse
-from decimal import Decimal
-from crowdcomputer import settings
 import requests
 from requests.auth import HTTPBasicAuth
-import json
-from general.tasks import triggerReceiver
-
 from lxml import etree
+
+from general.models import Data, TaskInstance, ProcessActiviti, UserProfile
+import crowdcomputer
+from general.mturk import mTurk
+from crowdcomputer import settings
+from general.tasks import triggerReceiver
 
 
 log = logging.getLogger(__name__)
 
+
 def getResults(task):
     ret = []
-    
-    
+
     for instance in task.taskinstance_set.all():
-#        if task.humantask.platform=='MT':
-#            assignmentId=instance.parameters.get('assignmentId',None)
-#            workerId=instance.parameters.get('workerId',None)
-#            log.debug("retrive Hit Results for ")
-#            mt = mTurk(crowdcomputer.settings.AMZ_PRIVATE, crowdcomputer.settings.AMZ_SECRET)
-#            value = mt.getDataFromHit(assignmentId, workerId)
-#            instance.output_data.value = value
-#            instance.save()
-#            ret.append(value)
+        # if task.humantask.platform=='MT':
+        #            assignmentId=instance.parameters.get('assignmentId',None)
+        #            workerId=instance.parameters.get('workerId',None)
+        #            log.debug("retrive Hit Results for ")
+        #            mt = mTurk(crowdcomputer.settings.AMZ_PRIVATE, crowdcomputer.settings.AMZ_SECRET)
+        #            value = mt.getDataFromHit(assignmentId, workerId)
+        #            instance.output_data.value = value
+        #            instance.save()
+        #            ret.append(value)
         if hasattr(instance, 'output_data'):
             if instance.output_data:
                 if 'validation' in instance.parameters and instance.parameters['validation']:
@@ -43,28 +44,31 @@ def getResults(task):
                     value = instance.output_data.value
                     ret.append(value)
                 else:
-                    log.debug("data of %s: [%s,%s] is not valid",instance.executor, instance.output_data,instance.parameters)
-#            if isinstance(value, list):
-#                log.debug('list: %s', value)
-#                for v in value:
-#                    ret.append(v)
-#    #        if not append the element
-#            else:
-#                log.debug('element [%s}: %s' % (type(value), value))
-#                ret.append(value)
+                    log.debug("data of %s: [%s,%s] is not valid", instance.executor, instance.output_data,
+                              instance.parameters)
+                #            if isinstance(value, list):
+                #                log.debug('list: %s', value)
+                #                for v in value:
+                #                    ret.append(v)
+                #    #        if not append the element
+                #            else:
+                #                log.debug('element [%s}: %s' % (type(value), value))
+                #                ret.append(value)
     log.debug("results: %s", ret)
-    log.debug("merge %s", task.parameters['merge'])
+    # log.debug("merge %s", task.parameters['merge'])
     if "merge" not in task.parameters or task.parameters['merge'] is not None and task.parameters['merge'] == False:
         return mergeData(ret)
     else:
         return ret
 
+
 '''conversion rates'''
 CONVERSION = (('CCM', 1.0), ('USD', 1.16), ('EUR', 0.9), ('COF', 2.0))
 
+
 def convertReward(from_type, to_type, r_quantity):
     for k, v in CONVERSION:
-        if k == from_type: 
+        if k == from_type:
             from_value = float(v)
         if k == to_type:
             to_value = float(v)
@@ -73,29 +77,28 @@ def convertReward(from_type, to_type, r_quantity):
     conversion = (float(r_quantity) / from_value) * to_value
     log.debug(conversion)
     return Decimal(str(conversion))
-    
 
 
-
-
-
-#    TODO: write test cases for  functions.
+# TODO: write test cases for  functions.
 
 def __combinations(l, n):
     return list(itertools.combinations(l, n))
+
 
 # first n-m and last m elements are overlapped
 def __splitNM(l, n, m):
     ret = []
     ret.append(l[0:n])
     for i in range(n, len(l), n - m):
-        left = i - m if i - m > 0 else 0 
+        left = i - m if i - m > 0 else 0
         right = i + (n - m) if i + (n - m) < len(l) else len(l)
         ret.append(l[left:right])
     return ret
-   
+
+
 def __splitN(l, n):
-    return __splitNM(l, n, 0) 
+    return __splitNM(l, n, 0)
+
 
 def splitData(data, operation, n=0, m=0):
     '''
@@ -111,6 +114,7 @@ def splitData(data, operation, n=0, m=0):
     elif operation.lower() == 'splitNM'.lower():
         return __splitNM(data, n, m)
 
+
 def mergeData(data):
     '''
         takes a list (data) of list and returns an array
@@ -122,13 +126,14 @@ def mergeData(data):
     ret = []
     for d in data:
         value = d
-#        if list then concat element
+        #        if list then concat element
         if isinstance(value, list):
             ret = ret + value
-#        if not append the element
+        #        if not append the element
         else:
-            ret.append(value)      
-    return ret 
+            ret.append(value)
+    return ret
+
 
 def __condition(o_value, operator, value):
     if operator == '==':
@@ -139,20 +144,23 @@ def __condition(o_value, operator, value):
         return (o_value < value)
     elif operator == '>':
         return (o_value > value)
-    else: 
+    else:
         return False
+
 
 def __satisfy(obj, condition):
     field = str(condition['field'])
     operator = str(condition['operator'])
     value = str(condition['value'])
     if obj:
-        log.debug("condition %s %s %s %s" % (obj[field], operator, value, __condition(str(obj[field]), operator, value)))
+        log.debug(
+            "condition %s %s %s %s" % (obj[field], operator, value, __condition(str(obj[field]), operator, value)))
         if __condition(str(obj[field]), operator, value):
             return obj
         else:
             return None
     return None
+
 
 def filterData(objects, conditions, condition_operator='and'):
     '''
@@ -173,14 +181,14 @@ def filterData(objects, conditions, condition_operator='and'):
                 if obj_t is not None:
                     obj_t_l.append(obj)
         if condition_operator == 'and' and obj:
-            listret.append(obj)           
+            listret.append(obj)
         elif len(obj_t_l) > 0:
             obj = obj_t_l[0]
             listret.append(obj)
     ret = {}
     ret['result'] = listret
     return ret
-    
+
 
 def splitObjects(objects, shared, fields):
     '''
@@ -213,6 +221,7 @@ def splitObjects(objects, shared, fields):
     ret.append(list2)
     return ret
 
+
 def joinObjects(objects, field):
     '''
         takes a list of objects and merge them.
@@ -226,21 +235,21 @@ def joinObjects(objects, field):
         [{'id': 1,'smt': 'else2', 'tag': 'ciao1'}, {'id': 2,'tag': ['ciao2', 'ciao1','ciao3']}]
     '''
     res = {}
-#    defaultdict(dict)
+    #    defaultdict(dict)
     for obj in objects:
-#        find the index
+        #        find the index
         idx = obj[field]
-#        find the object
+        #        find the object
         if idx in res:
             t_obj = res[idx]
         else:
             t_obj = {}
-            
+
         for k, v in obj.iteritems():
-#            if key is the field don't do anything
+            #            if key is the field don't do anything
             if k != field:
                 if k in t_obj:
-#                    if it's a list then append it, so we avoid list into lists
+                    #                    if it's a list then append it, so we avoid list into lists
                     if isinstance(t_obj[k], list):
                         t_obj[k].append(v)
                     else:
@@ -251,14 +260,14 @@ def joinObjects(objects, field):
                     else:
                         t_obj[k] = [v]
             else:
-                t_obj[k] = v  
-#            store in the map
+                t_obj[k] = v
+            #            store in the map
         res[idx] = t_obj
     r = []
-#    for all the elements in the list (which are dict)
+    #    for all the elements in the list (which are dict)
     for k, v in res.iteritems():
         obj = {}
-#        take all the fields of an element
+        #        take all the fields of an element
         for k1, v1 in v.iteritems():
             if isinstance(v1, list):
                 if len(v1) == 1:
@@ -270,7 +279,7 @@ def joinObjects(objects, field):
         r.append(obj)
     return r
 
-    
+
 #    #FIXME: this has to be checked
 #    def mergeResults(self,task):
 #        instances = task.taskinstance_set.all().exclude(output=None)
@@ -287,10 +296,10 @@ def joinObjects(objects, field):
 #                log.debug('element [%s}: %s' % (type(value), value))
 #                ret.append(value)
 #        return ret
-        
-   
-    # FIXME: this has to be checked
-    
+
+
+# FIXME: this has to be checked
+
 #    def joinTasks(self,field, lst):
 #        res = defaultdict(dict)
 #        for task in lst:
@@ -310,9 +319,9 @@ def joinObjects(objects, field):
 #        for k, v in res.iteritems():
 #            r.append(v)
 #        return r
-    
-    # can be useful. it creates huge amount of data!
-   
+
+# can be useful. it creates huge amount of data!
+
 #    
 #    def manageMerging(self,task):
 #        dt = None
@@ -338,13 +347,14 @@ def joinObjects(objects, field):
 
 def createInstance(task, data):
     taskinstance = TaskInstance(task=task,
-                               status='ST',
-                               uuid=uuid4())
+                                status='ST',
+                                uuid=uuid4())
     if data:
         taskinstance.input_data = data
     taskinstance.save()
     return taskinstance
-    
+
+
 @transaction.commit_on_success
 def startTask(task, data=[]):
     '''
@@ -352,14 +362,14 @@ def startTask(task, data=[]):
         create the isntances.
         transactions saves only when all is ok.
     '''
-    log.debug("data %s",data)
-    data=json.loads(data)
-#   for all the objects in the list create a data object
+    log.debug("data %s", data)
+    data = json.loads(data)
+    #   for all the objects in the list create a data object
     for i in range(0, task.humantask.number_of_instances):
-#        if data has elements
-        log.debug("lenght of data is %s",len(data))
+        #        if data has elements
+        log.debug("lenght of data is %s", len(data))
         if len(data) > 0:
-#            if data is a list of list, then do it
+            #            if data is a list of list, then do it
             if isinstance(data[0], list):
                 log.debug("data is a list")
                 for d in data:
@@ -369,15 +379,15 @@ def startTask(task, data=[]):
                     createInstance(task, dd)
 
             else:
-                log.debug("data is not a list, it is a %s",type(data))
+                log.debug("data is not a list, it is a %s", type(data))
                 dd = Data(value=data)
                 dd.save()
                 log.debug(' %s instance (%s) with data %s ' % (task.title, i, dd.value))
                 createInstance(task, dd)
         else:
-            
+
             log.debug(' %s instance (%s) without data ' % (task.title, i))
-            createInstance(task, None)  
+            createInstance(task, None)
     task.status = 'PR'
     task.save()
     log.debug("MT = %s " % task.humantask.platform)
@@ -385,34 +395,37 @@ def startTask(task, data=[]):
         mturkTask(task)
     return True
 
+
 def mturkTask(task):
     mt = mTurk(crowdcomputer.settings.AMZ_PRIVATE, crowdcomputer.settings.AMZ_SECRET)
     now = timezone.make_aware(datetime.now(), timezone.get_default_timezone())
     log.debug("%s %s" % (is_aware(task.date_deadline), is_aware(now)))
     duration = (task.date_deadline - now)
     log.debug("seconds between date %s " % duration.seconds)
-#    reward = convertReward(task.humantask.reward.type, 'USD', task.humantask.reward.quantity)
+    #    reward = convertReward(task.humantask.reward.type, 'USD', task.humantask.reward.quantity)
     reward = task.humantask.reward.quantity
     log.debug("converted reward %s", reward)
-    typeId=''
+    typeId = ''
     for instance in task.humantask.taskinstance_set.all():
         url = crowdcomputer.settings.CM_Location + reverse('mt-execute-instance', args=[instance.uuid])
         log.debug(url)
-        r = mt.createExternalQuestion("[" + task.owner.username + "] " + task.title, task.description, "CrowdComputer.org", url, duration.seconds, reward)
+        r = mt.createExternalQuestion("[" + task.owner.username + "] " + task.title, task.description,
+                                      "CrowdComputer.org", url, duration.seconds, reward)
         pars = {}
         pars['HITId'] = r.HITId
         pars['HITTypeId'] = r.HITTypeId
-        log.debug("typeId %s",typeId)
-        if typeId=='':
-            typeId=r.HITTypeId
-        if typeId!=r.HITTypeId:
-            typeId=None
-        log.debug("typeId %s vs %s",typeId,r.HITTypeId)
+        log.debug("typeId %s", typeId)
+        if typeId == '':
+            typeId = r.HITTypeId
+        if typeId != r.HITTypeId:
+            typeId = None
+        log.debug("typeId %s vs %s", typeId, r.HITTypeId)
         instance.parameters = pars
         instance.save()
     if typeId:
-        task.parameters['HITTypeId']=typeId
+        task.parameters['HITTypeId'] = typeId
         task.save()
+
 
 def forceProcessFinish(process):
     if process.is_finished:
@@ -420,47 +433,41 @@ def forceProcessFinish(process):
     process.status = 'FN'
     process.save()
     for task in process.task_set.all():
-        log.debug("finishing : %s",task.pk)
+        log.debug("finishing : %s", task.pk)
         forceFinish(task)
-    
+
 
 def forceFinish(task):
-    l=[]
+    l = []
     if task.is_finished:
         return
-    
-    
+
     for instance in task.taskinstance_set.all():
-        if instance.status !='FN':
+        if instance.status != 'FN':
             instance.status = 'ST'
             instance.save()
-            log.debug("finishing instance: %s",instance.pk)
+            log.debug("finishing instance: %s", instance.pk)
             if instance.validation:
                 l.append(instance.validation)
-                
+
     rewardUsers(task)
     if settings.CELERY:
         triggerReceiver.delay(task, getResults(task))
     else:
-        triggerReceiver(task,getResults(task))
+        triggerReceiver(task, getResults(task))
     task.status = 'FN'
     task.save()
     for i in l:
         forceProcessFinish(i)
 
-    
+
 def stopTask(task):
     task.status = 'ST'
     task.save()
     for instance in task.taskinstance_set.all():
         instance.status = 'ST'
         instance.save()
- 
 
- 
-   
-
-         
 
 # #FIXME: this has to be rewrite (add data to this function)
 # def startTask(task):
@@ -623,8 +630,8 @@ def stopTask(task):
 #                startTask(task)  
 #
 #        
-            
-    
+
+
 
 
 #
@@ -648,15 +655,13 @@ def stopTask(task):
 #    log.debug('time = %s', (int(round(time.time() * 1000)) - start))
 #    
 
-        
+
 
 def copyReqParameter(request):
-        query_dict = request.GET.copy()
-        for k, v in request.GET.iteritems():
-            query_dict[k] = v
-        return '?%s' % query_dict.urlencode()
-    
-
+    query_dict = request.GET.copy()
+    for k, v in request.GET.iteritems():
+        query_dict[k] = v
+    return '?%s' % query_dict.urlencode()
 
 
 def receiveTask(name):
@@ -664,14 +669,15 @@ def receiveTask(name):
     attrib = {}
     attrib['id'] = name + '-receive'
     attrib['name'] = 'Receive Task'
-    
+
     obj = etree.Element("receiveTask", attrib=attrib)
     log.debug("receive task " + str(obj))
     return obj
 
+
 def fixSF(sequence, name, total):
     ''' <sequenceFlow id="flow2" sourceRef="servicetask1" targetRef="endevent1"></sequenceFlow>'''
-#   A->B becomes A->C
+    #   A->B becomes A->C
     log.debug("sequence is : " + sequence.attrib['sourceRef'] + " " + sequence.attrib['targetRef'])
     temp_target = sequence.attrib['targetRef']
     log.debug("temp_target " + temp_target)
@@ -681,10 +687,11 @@ def fixSF(sequence, name, total):
     attrib['sourceRef'] = name
     attrib['targetRef'] = temp_target
     log.debug(temp_target)
-#    create C->B
+    #    create C->B
     obj = etree.Element("sequenceFlow", attrib=attrib)
     log.debug("result is " + obj.attrib['sourceRef'] + " " + obj.attrib['targetRef'])
     return obj
+
 
 def createObject(name, value):
     ret = {}
@@ -692,27 +699,28 @@ def createObject(name, value):
     ret['value'] = value
     return ret
 
+
 def rewardUser(taskinstance):
-#    messages.info(request, 'Sorry, we do not support reward (yet)')
+    #    messages.info(request, 'Sorry, we do not support reward (yet)')
     if taskinstance.executor is None:
         return
     pars = taskinstance.parameters
-    log.debug("platform %s",taskinstance.task.humantask.platform)
-    if taskinstance.task.humantask.platform=="MT":
+    log.debug("platform %s", taskinstance.task.humantask.platform)
+    if taskinstance.task.humantask.platform == "MT":
         log.debug("reward for turk")
         mt = mTurk(crowdcomputer.settings.AMZ_PRIVATE, crowdcomputer.settings.AMZ_SECRET)
 
-        a_id = pars.get('assignmentId',None)
-        w_id = pars.get('workerId',None)
+        a_id = pars.get('assignmentId', None)
+        w_id = pars.get('workerId', None)
         if a_id is None or w_id is None:
-            log.debug("a_id is None or w_id is None: %s ",taskinstance.parameters)
-        else:   
-            log.debug("a_id is %s or w_id is %s ",a_id,w_id)
+            log.debug("a_id is None or w_id is None: %s ", taskinstance.parameters)
+        else:
+            log.debug("a_id is %s or w_id is %s ", a_id, w_id)
             mt.approveAssignemnt(a_id, "good job")
-            log.debug("approved %s",a_id)
-#        log.warn("Turk rewarding is not implemented")
-    pars['reward']=True
-    log.debug("pars %s",pars)
+            log.debug("approved %s", a_id)
+        #        log.warn("Turk rewarding is not implemented")
+    pars['reward'] = True
+    log.debug("pars %s", pars)
     taskinstance.save()
     log.warn("Not implemnted method")
     return
@@ -726,37 +734,42 @@ def rewardUser(taskinstance):
         o_reward = taskinstance.task.humantask.reward
     n_reward = convertReward(o_reward.type, "USD", o_reward.quantity)
     reward = reward + n_reward
-#    request.session['reward'] = n_reward
+    #    request.session['reward'] = n_reward
     userp.reward_dollars = reward
     userp.save()
-    
+
+
 def rejectUser(taskinstance):
     if taskinstance.executor is None:
         return
     log.debug("reject user")
-    pars =  taskinstance.parameters
-#    messages.info(request, 'Sorry, we do not support reward (yet)')
-    if taskinstance.task.humantask.platform=="MT":
+    pars = taskinstance.parameters
+    #    messages.info(request, 'Sorry, we do not support reward (yet)')
+    if taskinstance.task.humantask.platform == "MT":
         mt = mTurk(crowdcomputer.settings.AMZ_PRIVATE, crowdcomputer.settings.AMZ_SECRET)
-        a_id =pars.get('assignmentId',None)
-        w_id = pars.get('workerId',None)
+        a_id = pars.get('assignmentId', None)
+        w_id = pars.get('workerId', None)
         if a_id is None or w_id is None:
-            log.debug("a_id is None or w_id is None: %s ",taskinstance.parameters)
-        else:                
-            log.debug("a_id is %s or w_id is %s ",a_id,w_id)
+            log.debug("a_id is None or w_id is None: %s ", taskinstance.parameters)
+        else:
+            log.debug("a_id is %s or w_id is %s ", a_id, w_id)
             mt.rejectAssigment(a_id, "good job")
-            log.debug("reject %s",a_id)
-#        log.warn("Turk rewarding is not implemented")
+            log.debug("reject %s", a_id)
+        #        log.warn("Turk rewarding is not implemented")
     taskinstance.save()
 
     return
 
-def rewardUsers(task):
 
-    log.debug("rewarding for %s",task.pk)
+def rewardUsers(task, fromapi=False):
+    log.debug("rewarding for %s", task.pk)
 
     # if it's a custom type do not run the normal rewarding
-    if 'type' in task.parameters and task.parameters['type'] in ['custom']:
+    # from api is to check that the calls does not come from the api in that case pls go ahead
+    if 'type' in task.parameters and task.parameters['type'] in ['custom'] and not fromapi:
+        return True
+    # if already rewared then ciao
+    if "rewarded" in task.parameters and task.parameters['rewarded'] == True:
         return True
     ht = task.humantask
     reward = ht.reward
@@ -771,172 +784,191 @@ def rewardUsers(task):
             rejectUser(ti)
     elif (reward.strategy == "VALID"):
         log.debug("valid")
+        ts = -1;
+        if "threshold" in task.parameters:
+            ts = task.parameters['threshold']
         for ti in task.taskinstance_set.all():
+
             if 'validation' in ti.parameters:
                 log.debug("validation result %s", ti.parameters['validation'])
-                if ti.parameters['validation']:
+                if ts > -1:
+                    if ti.parameters['validation'] >= ts:
+                        rewardUser(ti)
+                    else:
+                        rejectUser(ti)
+                elif ti.parameters['validation']:
                     rewardUser(ti)
                 else:
                     rejectUser(ti)
             elif ti.executor:
-                    ti.parameters['validation']=True
-                    rewardUser(ti)
-                    ti.save()
+                ti.parameters['validation'] = 'Not specified'
+                rewardUser(ti)
+                ti.save()
     elif (reward.strategy == "BEST"):
         log.debug("best")
 
         bests = []
-        notbests=[]
+        notbests = []
         best_v = None
         for ti in task.taskinstance_set.all():
             if 'validation' in ti.parameters:
                 log.debug("validation result %s", ti.parameters['validation'])
-                e=ti.parameters['validation']
+                e = ti.parameters['validation']
                 if best_v is None:
-                    best_v=e
+                    best_v = e
                     bests.append(e)
-                elif e>best_v:
-                    notbests+=bests
-                    bests=[]
+                elif e > best_v:
+                    notbests += bests
+                    bests = []
                     bests.append(e)
-                    best_v=e
-                elif e==best_v:
+                    best_v = e
+                elif e == best_v:
                     bests.append(e)
                 else:
-                    notbests.append(e) 
+                    notbests.append(e)
             elif ti.executor:
-                    ti.parameters['validation']=True
-                    rewardUser(ti)
-                    ti.save()
-#                if float(ti.parameters['validation'])>=best_v:
-#                    best_v=float(ti.parameters['validation'])
-#                    if len(bests)>0:
-#                        if bests[0]<best_v:
-#                            for old_b in bests:
-#                                bests.remove(old_b)
-#                                notbests.append(old_b)
-#                    bests.append(ti)
-#                else:
-#                    notbests.append(ti)
-                
+                ti.parameters['validation'] = 'Not specified'
+                rewardUser(ti)
+                ti.save()
+            #                if float(ti.parameters['validation'])>=best_v:
+            #                    best_v=float(ti.parameters['validation'])
+            #                    if len(bests)>0:
+            #                        if bests[0]<best_v:
+            #                            for old_b in bests:
+            #                                bests.remove(old_b)
+            #                                notbests.append(old_b)
+            #                    bests.append(ti)
+            #                else:
+            #                    notbests.append(ti)
+
         for b in bests:
-            b.parameters['validation_value']=b.parameters['validation']
-            b.parameters['validation']=True
+            b.parameters['validation_value'] = b.parameters['validation']
+            b.parameters['validation'] = 100
             b.save()
             rewardUser(b)
         for nb in notbests:
-            nb.parameters['validation_value']=nb.parameters['validation']
-            nb.parameters['validation']=False
+            nb.parameters['validation_value'] = nb.parameters['validation']
+            nb.parameters['validation'] = 0
             nb.save()
             rejectUser(nb)
+    task.parameters['rewarded'] = True
+    task.save()
 
-def startProcess(process,process_id, data):
-#    log.debug("starting  %s" % process_id)
-#    log.debug("data %s",json.dumps(data))
-#    url = settings.ACTIVITI_URL + "/process-instance"
-#    response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
-#    log.debug(response.text)
-#    jsonresp = response.json()
-#    processInstanceId = jsonresp.get("id")
-#    processDefinition = jsonresp.get("processDefinitionId")
-#    process_activiti = ProcessActiviti(process=process, key=process_id, instanceID=processInstanceId, processDefinition=processDefinition)
-#    process_activiti.save()
-#    log.debug(response.text)
-#    return True
+
+def startProcess(process, process_id, data):
+    #    log.debug("starting  %s" % process_id)
+    #    log.debug("data %s",json.dumps(data))
+    #    url = settings.ACTIVITI_URL + "/process-instance"
+    #    response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
+    #    log.debug(response.text)
+    #    jsonresp = response.json()
+    #    processInstanceId = jsonresp.get("id")
+    #    processDefinition = jsonresp.get("processDefinitionId")
+    #    process_activiti = ProcessActiviti(process=process, key=process_id, instanceID=processInstanceId, processDefinition=processDefinition)
+    #    process_activiti.save()
+    #    log.debug(response.text)
+    #    return True
     log.debug("starting  %s" % process_id)
-    log.debug("data %s",json.dumps(data))
+    log.debug("data %s", json.dumps(data))
     url = settings.ACTIVITI_URL + "/runtime/process-instances"
-    response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
+    response = requests.post(url, data=json.dumps(data),
+                             auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
     log.debug("response: " + response.text)
     jsonresp = response.json()
     log.debug(jsonresp);
     processInstanceId = jsonresp.get("id")
     processDefinition = jsonresp.get("processDefinitionId")
-    process_activiti = ProcessActiviti(process=process, key=process_id, instanceID=processInstanceId, processDefinition=processDefinition)
+    process_activiti = ProcessActiviti(process=process, key=process_id, instanceID=processInstanceId,
+                                       processDefinition=processDefinition)
     process_activiti.save()
     log.debug(response.text)
-    process.status="PR"
+    process.status = "PR"
     process.save()
     return True
 
+
 def startProcessTactic(task, data):
-    log.debug("data %s",data)
+    log.debug("data %s", data)
     url = settings.ACTIVITI_URL + "/runtime/process-instances"
-    response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
+    response = requests.post(url, data=json.dumps(data),
+                             auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
     log.debug(response.text)
     jsonresp = response.json()
 
     pars = task.parameters
-    pars['process_id']=jsonresp.get("id")
-    pars['process_instance_id']=jsonresp.get("processDefinitionId")
-    task.parameters=pars
+    pars['process_id'] = jsonresp.get("id")
+    pars['process_instance_id'] = jsonresp.get("processDefinitionId")
+    task.parameters = pars
     task.save()
 
     return True
 
+
 def startProcessInternal(taskinstance, process, data):
-    log.debug("data %s",data)
+    log.debug("data %s", data)
     url = settings.ACTIVITI_URL + "/runtime/process-instances"
-    response = requests.post(url, data=json.dumps(data), auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
+    response = requests.post(url, data=json.dumps(data),
+                             auth=HTTPBasicAuth(settings.ACTIVITI_USERNAME, settings.ACTIVITI_PASSWORD))
     log.debug(response.text)
     jsonresp = response.json()
-
+    task=taskinstance.task
     pars = task.parameters
-    pars['process_id']=jsonresp.get("id")
-    pars['process_instance_id']=jsonresp.get("processDefinitionId")
-    task.parameters=pars
+    pars['process_id'] = jsonresp.get("id")
+    pars['process_instance_id'] = jsonresp.get("processDefinitionId")
+    task.parameters = pars
     task.save()
 
     return True
 
 
 def checkIfProcessFinished(process):
-    log.debug("check if finished %s",process)
+    log.debug("check if finished %s", process)
     #bug, dunno why it's FN even when it's no FN the process
     #if True==False:
-    if process.status=='FN':
+    if process.status == 'FN':
         for task in process.task_set.all():
-	   #handles the creation of new task
-	   if task.status=='PR':
-              process.status='PR'
-              process.save()
-              log.debug('restore to PR')
-	      return False
-	return True
+            #handles the creation of new task
+            if task.status == 'PR':
+                process.status = 'PR'
+                process.save()
+                log.debug('restore to PR')
+                return False
+        return True
     else:
-        ret=checkIfProcessFinished2(process)
+        ret = checkIfProcessFinished2(process)
         if ret:
-            process.status='FN'
-	    process.save()
+            process.status = 'FN'
+            process.save()
         return ret
 
+
 def checkIfProcessFinished2(process):
-    vl=[]
-    con=True
-    log.debug("size %s",len(process.task_set.all()))
+    vl = []
+    con = True
+    log.debug("size %s", len(process.task_set.all()))
     for task in process.task_set.all():
         log.debug(task)
-	if task.humantask:
-	    log.debug('is human')
+        if task.humantask:
+            log.debug('is human')
             if task.humantask.validation:
                 for ti in task.humantask.taskinstance_set.all():
                     if ti.validation_process:
                         vl.append(ti.validation)
-            con=checkIfFinished(task)
+            con = checkIfFinished(task)
             if not con:
                 return False
     for v in vl:
-        con= checkIfProcessFinished2(v)
+        con = checkIfProcessFinished2(v)
         if not con:
             return False
         else:
-            v.status='FN'
+            v.status = 'FN'
             v.save()
     return True
-                
-def checkIfFinished( task  ):
-    log.debug("check if finished %s %s",task.title,task.pk )
- 
+
+
+def checkIfFinished(task):
+    log.debug("check if finished %s %s", task.title, task.pk)
 
     if task.humantask is None:
         return True
@@ -946,7 +978,7 @@ def checkIfFinished( task  ):
         task.finish()
         if task.taskactiviti is not None:
             log.debug("expired")
-#            TODO: call the rewarding 
+            #            TODO: call the rewarding
             rewardUsers(task)
             results = getResults(task)
 
@@ -959,27 +991,27 @@ def checkIfFinished( task  ):
             task.save()
             return True
     elif 'type' in task.parameters and task.parameters['type'] in ['marketplace', 'newsletter']:
-#        log.info("type %s",task.parameters['type'])
+        #        log.info("type %s",task.parameters['type'])
         n = len(task.humantask.taskinstance_set.filter(status="FN"))
         tot = task.humantask.taskinstance_set.count()
-#        tot = task.humantask.number_of_instances
-#        if tot == 0:
-#            means it's newsletter
-            
-            
-        log.debug("is %s = %s"%(n,tot))
+        #        tot = task.humantask.number_of_instances
+        #        if tot == 0:
+        #            means it's newsletter
+
+
+        log.debug("is %s = %s" % (n, tot))
         if n == tot:
             if task.taskactiviti is not None:
                 log.debug("completed")
                 rewardUsers(task)
                 #            TODO: call the rewarding 
                 results = getResults(task)
-#                result = triggerReceiver(task, results)
+                #                result = triggerReceiver(task, results)
 
                 if settings.CELERY:
                     triggerReceiver.delay(task, results)
                 else:
-                    triggerReceiver(task, results)                
+                    triggerReceiver(task, results)
                 log.debug("completed2")
                 task.status = 'FN'
                 task.save()

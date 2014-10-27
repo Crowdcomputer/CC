@@ -99,18 +99,19 @@ def triggerReceiver(task, results):
     task.parameters['result']=results
     task.save()
     log.info("ok here we go")
-    log.debug("receive  " + task.taskactiviti.receive)
+    # log.debug("receive  " + task.taskactiviti.receive)
     username = settings.ACTIVITI_USERNAME
     password = settings.ACTIVITI_PASSWORD
     #http://localhost:8080/activiti-rest/service/process-instance/149/signal
-    url = settings.ACTIVITI_URL + "/process-instance/" + task.process.processactiviti.instanceID + "/signal"
+    url = settings.ACTIVITI_URL + "/runtime/executions/" + task.process.processactiviti.instanceID
     data = {}
-    data['activityId'] = task.taskactiviti.receive + "-receive"
-    name = task.parameters["data_name"]
-    data[name] = json.dumps(results)
+    # data['activityId'] = task.taskactiviti.receive + "-receive"
+    data['action'] = 'signal'
+    variables = []
+    variables.append(createObject(task.parameters["data_name"], results))
     dumps = json.dumps(data)
     log.debug("dumps data %s", dumps)
-    response = requests.post(url, data=dumps, auth=HTTPBasicAuth(username, password))
+    response = requests.put(url, data=dumps, auth=HTTPBasicAuth(username, password))
     log.debug(response.text)
 
 

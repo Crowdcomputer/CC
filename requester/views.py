@@ -22,10 +22,12 @@ from rest_framework.authtoken.models import Token
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
-from general.models import Process, Task, Reward, Application
+from general.models import Process, Task, Reward, Application, TaskInstance
+from general.tasks import signal
 from general.utils import startTask, createObject, forceFinish, startProcess, checkIfProcessFinished, \
     forceProcessFinish
-from requester.forms import ProcessForm, HumanTaskForm, MachineTaskForm  # , SplitDataTaskForm,FilterDataTaskForm
+from requester.forms import ProcessForm, HumanTaskForm, MachineTaskForm, \
+    ValidationForm  # , SplitDataTaskForm,FilterDataTaskForm
 from requester.forms import UploadFileForm
 from crowdcomputer import settings
 
@@ -55,13 +57,13 @@ class ProcessList(ListView):
 
     def get_queryset(self, **kwargs):
         process_list = Process.objects.filter(owner=self.request.user).filter(validates=None).order_by('-pk')
-        #        .order_by('-status')
+        # .order_by('-status')
         # process_list = sorted(process_list, key=lambda a: a.int_status)
         return process_list
 
 
 class TaskList(ListView):
-    #    FIXME: do we need to call trigger task function?
+    # FIXME: do we need to call trigger task function?
     #    if so then extend render_to_response and add the function there.
     template_name = 'requester/task_list.html'
     paginate_by = 10
@@ -106,7 +108,7 @@ class TaskList(ListView):
 
 # @login_required
 # def ProcessCreation(request):
-#    if request.method == 'POST':
+# if request.method == 'POST':
 #        form = ProcessForm(request.POST, user=request.user)
 #        if form.is_valid():
 #            #create a task
@@ -606,6 +608,7 @@ def uploadProcess(request):
     return render_to_response('requester/creation.html', {'form': form}, context_instance=RequestContext(request))
 
 
+
     #            root = etree.fromstring(read_file)
 
 
@@ -682,7 +685,6 @@ def exportcsv(request, process_id, task_id):
             for key in firstinstance.parameters.keys():
                 firstrow.append("parameters-" + key)
         writer.writerow(firstrow)
-        int
         for instance in allinstances:
             row = []
             if instance.executor:
@@ -705,3 +707,60 @@ def exportcsv(request, process_id, task_id):
                     writer.writerow(row)
 
     return response
+
+
+def TaskValidate(request, task_id):
+    log.debug("task_id %s - %s - %s" %(task_id,request.POST,request.GET))
+    task = get_object_or_404(Task, pk=task_id, owner=request.user)
+
+    if request.POST:
+
+        form = ValidationForm(request.POST)
+        if form.is_valid():
+        # TODO: unify with the api, now the code is copied
+            value = form.cleaned_data['validation']
+            for task_instance in task.taskinstance_set.all():
+                if 'validation' not in task_instance.parameters:
+                    task_instance.quality = value
+                    pars = task_instance.parameters
+                    if pars is None:
+                        pars = {}
+                    pars['validation'] = value
+                    task_instance.save()
+                    # if ("process_tactics_id" in task_instance.parameters):
+                    #     signal(task_instance.parameters['process_tactics_id'], task_instance.task.id, task_instance.id)
+            messages.info(request, 'Validation made')
+            return redirect(reverse('r-taskinstances',args={task_instance.task.process.id,task_instance.task.id,}))
+        else:
+            return render_to_response('requester/form.html', {'form': form}, context_instance=RequestContext(request))
+    else:
+        log.debug("GET task_id %s",task_id)
+        form = ValidationForm()
+        return render_to_response('requester/form.html', {'form': form}, context_instance=RequestContext(request))
+
+def TaskInstanceValidate(request, task_instance_id):
+    task_instance = get_object_or_404(TaskInstance, pk=task_instance_id, task__owner=request.user)
+    if request.POST:
+
+        form = ValidationForm(request.POST)
+        if form.is_valid():
+            if 'validation' not in task_instance.parameters:
+        # TODO: unify with the api, now the code is copied
+                value = form.cleaned_data['validation']
+                task_instance.quality = value
+                pars = task_instance.parameters
+                if pars is None:
+                    pars = {}
+                pars['validation'] = value
+                task_instance.save()
+                # if ("process_tactics_id" in task_instance.parameters):
+                #     signal(task_instance.parameters['process_tactics_id'], task_instance.task.id, task_instance.id)
+                messages.info(request, 'Validation made')
+            else:
+                messages.warning(request, 'Validation was already set')
+            return redirect(reverse('r-taskinstances',args={task_instance.task.process.id,task_instance.task.id,}))
+        else:
+            return render_to_response('requester/form.html', {'form': form}, context_instance=RequestContext(request))
+    else:
+        form = ValidationForm()
+        return render_to_response('requester/form.html', {'form': form}, context_instance=RequestContext(request))

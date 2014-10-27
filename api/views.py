@@ -19,6 +19,7 @@ from rest_framework import viewsets
 
 
 
+
 # ViewSets define the view behavior.
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, permission_classes, link
@@ -30,9 +31,9 @@ from rest_framework.views import APIView
 from api.exceptions import NotEnoughMoney
 from api.serializers import TaskSerializer, TaskInstanceSerializer
 from crowdcomputer import settings
-from general.models import Task, TaskInstance, Data, Process
+from general.models import Task, TaskInstance, Data, Process, Reward
 from general.tasks import signal, triggerReceiver
-from general.utils import createObject, startProcessTactic, startProcess, checkIfFinished, getResults
+from general.utils import createObject, startProcessTactic, startProcess, checkIfFinished, getResults, rewardUsers
 from restapi.permissions import IsOwnerOrGoOut
 
 from rest_framework_nested import routers
@@ -62,7 +63,7 @@ def get_instance_worker(pk_instance, worker):
 # if request.method == 'POST':
 # log.debug(request.DATA)
 # crowd_user = CrowdUserSerializer(data=request.DATA)
-#         log.debug(crowd_user.is_valid())
+# log.debug(crowd_user.is_valid())
 #         if crowd_user.is_valid():
 #             try:
 #                 log.debug("%s %s" % (type(crowd_user.data), crowd_user.data))
@@ -166,14 +167,25 @@ class TaskView(viewsets.ModelViewSet):
         # trigger the receive event for this task.
         checkIfFinished(task)
         results = getResults(task)
-        log.debug("result is " + results)
-        task.parameters['results']=results
+        log.debug("result is " + str(results))
+        task.parameters['results'] = results
         task.save()
         if settings.CELERY:
             triggerReceiver.delay(task, results)
         else:
             triggerReceiver(task, results)
         res['status'] = task.status
+        return Response(res)
+
+    @action()
+    def reward(self, request, pk=None):
+        task = get_task(pk, request.user)
+        reward = task.humantask.reward
+        reward.strategy = request.DATA['type']
+        task.parameters['threshold'] = request.DATA['threshold']
+        rewardUsers(task, True)
+        res = {}
+        res['status'] = 'rewarded'
         return Response(res)
 
 
@@ -310,7 +322,7 @@ class InstanceView(viewsets.ModelViewSet):
             resp["details"] = "Reward of " + str(task_instance.task.humantask.reward.quantity) + " is given"
             # trigger receiver on BPMN
             if ("process_tactics_id" in task_instance.parameters):
-                signal(task_instance.parameters['process_tactics_id'],task_instance.task.id,task_instance.id)
+                signal(task_instance.parameters['process_tactics_id'], task_instance.task.id, task_instance.id)
             return Response(resp)
         else:
             # trigger receiver on BPMN
@@ -331,7 +343,7 @@ class InstanceView(viewsets.ModelViewSet):
         task_instance.save()
         resp["details"] = "Reward of " + str(task_instance.task.humantask.reward.quantity) + " rejected"
         if ("process_tactics_id" in task_instance.parameters):
-                signal(task_instance.parameters['process_tactics_id'],task_instance.task.id,task_instance.id)
+            signal(task_instance.parameters['process_tactics_id'], task_instance.task.id, task_instance.id)
         return Response(resp)
 
 
@@ -342,7 +354,7 @@ class InstanceView(viewsets.ModelViewSet):
             raise exceptions.ParseError(detail="'value' not found")
         task_instance = get_instance(task_pk, pk, request.user)
         value = int(request.DATA['value'])
-        log.debug("setting %s for %s %s " %(value,task_instance.task.id,task_instance.id))
+        log.debug("setting %s for %s %s " % (value, task_instance.task.id, task_instance.id))
         if (value >= 0 and value <= 100):
             task_instance.quality = value
             pars = task_instance.parameters
@@ -354,7 +366,7 @@ class InstanceView(viewsets.ModelViewSet):
             resp["details"] = "Quality set (" + str(value) + ")"
             # call the signal
             if ("process_tactics_id" in task_instance.parameters):
-                signal(task_instance.parameters['process_tactics_id'],task_instance.task.id,task_instance.id)
+                signal(task_instance.parameters['process_tactics_id'], task_instance.task.id, task_instance.id)
             return Response(resp)
         else:
             raise exceptions.ParseError(detail="choose a value between 0 and 100")
@@ -376,7 +388,7 @@ class InstanceView(viewsets.ModelViewSet):
             app = task_instance.task.process.application
             process = Process(title="Validation for " + str(task_instance.pk),
                               description="Validation process for taskinstance " + str(task_instance.pk), owner=owner,
-                              application=app, parameters={"display":False})
+                              application=app, parameters={"display": False})
             process.save()
             task_instance.validation_process = process
             # process.validates = task_instance
@@ -390,9 +402,9 @@ class InstanceView(viewsets.ModelViewSet):
             variables.append(createObject('app_token', app.token))
             token, created = Token.objects.get_or_create(user=owner)
             variables.append(createObject('user_token', token.key))
-            indata="{}"
+            indata = "{}"
             if (task_instance.output_data is not None):
-                indata=json.dumps(task_instance.output_data.value)
+                indata = json.dumps(task_instance.output_data.value)
             variables.append(createObject('data', [indata]))
             variables.append(createObject('taskId', task_instance.task.id))
             variables.append(createObject('taskInstanceId', task_instance.pk))
@@ -405,44 +417,44 @@ class InstanceView(viewsets.ModelViewSet):
             content = {"details": "missing process parameter"}
             return Response(content, status=HTTP_400_BAD_REQUEST)
 
-    @action()
-    def process_reward(self, request, pk=None, task_pk=None):
-        # TODO: this is the same as above (changes only validates, code then can be improved here
-        task_instance = get_instance(task_pk, pk, request.user)
-        if "process" in self.request.DATA:
-            process_in = self.request.DATA['process']
-            owner = task_instance.task.owner
-            app = task_instance.task.process.application
-            process = Process(title="Reward process for taskinstance " + str(task_instance.pk),
-                              description="Reward process for taskinstance " + str(task_instance.pk), owner=owner,
-                              application=app, parameters={"display":False})
-            process.save()
-            task_instance.reward_process = process
-            # process.validates = task_instance
-            task_instance.save()
-
-            data = {}
-            data['processDefinitionKey'] = process_in
-
-            variables = []
-            variables.append(createObject('processId', process.pk))
-            variables.append(createObject('app_token', app.token))
-            token, created = Token.objects.get_or_create(user=owner)
-            variables.append(createObject('user_token', token.key))
-            indata="{}"
-            if (task_instance.output_data is not None):
-                indata=json.dumps(task_instance.output_data.value)
-            variables.append(createObject('data', [indata]))
-            variables.append(createObject('taskId', task_instance.task.id))
-            variables.append(createObject('taskInstanceId', task_instance.pk))
-            data['variables'] = variables
-            dumps = json.dumps(data)
-            log.debug("dumps data %s", dumps)
-            startProcess(process, process_in, data)
-            return Response(status=HTTP_200_OK)
-        else:
-            content = {"details": "missing process parameter"}
-            return Response(content, status=HTTP_400_BAD_REQUEST)
+            # @action()
+            # def process_reward(self, request, pk=None, task_pk=None):
+            #     # TODO: this is the same as above (changes only validates, code then can be improved here
+            #     task_instance = get_instance(task_pk, pk, request.user)
+            #     if "process" in self.request.DATA:
+            #         process_in = self.request.DATA['process']
+            #         owner = task_instance.task.owner
+            #         app = task_instance.task.process.application
+            #         process = Process(title="Reward process for taskinstance " + str(task_instance.pk),
+            #                           description="Reward process for taskinstance " + str(task_instance.pk), owner=owner,
+            #                           application=app, parameters={"display":False})
+            #         process.save()
+            #         task_instance.reward_process = process
+            #         # process.validates = task_instance
+            #         task_instance.save()
+            #
+            #         data = {}
+            #         data['processDefinitionKey'] = process_in
+            #
+            #         variables = []
+            #         variables.append(createObject('processId', process.pk))
+            #         variables.append(createObject('app_token', app.token))
+            #         token, created = Token.objects.get_or_create(user=owner)
+            #         variables.append(createObject('user_token', token.key))
+            #         indata="{}"
+            #         if (task_instance.output_data is not None):
+            #             indata=json.dumps(task_instance.output_data.value)
+            #         variables.append(createObject('data', [indata]))
+            #         variables.append(createObject('taskId', task_instance.task.id))
+            #         variables.append(createObject('taskInstanceId', task_instance.pk))
+            #         data['variables'] = variables
+            #         dumps = json.dumps(data)
+            #         log.debug("dumps data %s", dumps)
+            #         startProcess(process, process_in, data)
+            #         return Response(status=HTTP_200_OK)
+            #     else:
+            #         content = {"details": "missing process parameter"}
+            #         return Response(content, status=HTTP_400_BAD_REQUEST)
 
 
 router = routers.SimpleRouter()

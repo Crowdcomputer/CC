@@ -111,7 +111,15 @@ class UploadFileForm(Form):
         self.helper.form_class = 'form-horizontal'
         super(UploadFileForm, self).__init__(*args, **kwargs)
         
-        
+class ValidationForm(Form):
+    validation = forms.IntegerField(max_value=100,min_value=0)
+
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.add_input(Submit('submit', 'Save'))
+        self.helper.form_class = 'form-horizontal'
+        super(ValidationForm, self).__init__(*args, **kwargs)
 
 '''
 class SplitDataTaskForm(ModelForm):

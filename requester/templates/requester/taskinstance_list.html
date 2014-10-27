@@ -18,7 +18,9 @@
             <th>date_finished</th>
             <th>Input</th>
             <th>Output</th>
-            <th>Validation</th>
+            <th>Validation <a href='{% url "r-task-validate" task.pk %}' class='btn btn-mini'
+                               title='go to validation page'><i class='icon-list'></i></a>
+            </th>
             <th>Rewarded</th>
 
             <th>Parameters</th>
@@ -39,8 +41,12 @@
                     <td>{{ taskinstance.input_data.value|jsonify }}</td>
                     <td>{{ taskinstance.output_data.value|jsonify }}</td>
                     <td>
+                        <a href='{% url 'r-taskinstance-validate' taskinstance.pk %}' class='btn btn-mini'
+                               title='go to validation page'><i class='icon-list'></i></a>
                         {% if "validation"  not in taskinstance.parameters %}
                             <span class="badge badge-warning">?</span>
+                            <a href='{% url "r-taskinstance-validate" taskinstance.pk %}' class='btn btn-mini'
+                               title='go to validation page'><i class='icon-list'></i></a>
                         {% elif taskinstance.parameters.validation == True %}
                             <span class="badge badge-success"><i class="icon-ok"></i></span>
                         {% elif taskinstance.parameters.validation == False %}
@@ -62,6 +68,7 @@
                                class='btn tip' title='go to the process page'><i class='icon-th-list'></i></a>
                             </p>
                         {% endif %}
+
                     </td>
                     <td>
                         {% if "reward"  not in taskinstance.parameters %}
