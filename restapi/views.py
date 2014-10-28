@@ -517,10 +517,10 @@ class TokenList(APIView):
     
 class TestView(APIView):
     def get(self, request, format=None):
-        auth = request.META.get('HTTP_Authorization    ')
+        auth = request.META.get('HTTP_AUTHORIZATION')
         app = request.META.get('HTTP_APP_ID')
 #        token, created = Token.objects.get_or_create(user=self.request.user)
-        log.debug("header %s %s",(auth,app) )
+        log.debug("header %s %s"%(auth,app))
         tt={}
         tt['auth']=auth
         tt['app']=app
