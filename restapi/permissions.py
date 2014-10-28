@@ -8,6 +8,7 @@ from rest_framework import permissions
 import logging
 from rest_framework.permissions import SAFE_METHODS
 from django.contrib.auth.models import User
+from general.models import Application
 
 log = logging.getLogger(__name__)
 
@@ -51,8 +52,8 @@ class IsFromApp(permissions.BasePermission):
             
 #            log.debug('safe method')
             return True
-        
-        apptoken = request.META.get('HTTP_APP_ID')
+        #FIXME remove app
+        apptoken = Application.objects.get(name="bpmn")
         log.debug("apptoken " + apptoken)
         if apptoken is None:
             log.debug('apptoken is none')

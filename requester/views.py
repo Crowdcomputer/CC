@@ -557,6 +557,7 @@ def uploadProcess(request):
 
                     #                        User.objects.get(username="crowdcomputer")
                     #                        log.debug("user %s",cc.username)
+                    # TODO: useless right now.
                     app = Application.objects.get(name="bpmn")
                     cc = app.user
                     log.debug("app %s %s", app.name, cc)
