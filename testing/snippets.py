@@ -9,7 +9,6 @@ ONLY TO TEST PIECES
 from executor.forms import BidForm
 from general.models import Task
 from general.utils import mergeData, splitObjects, filterData, joinObjects
-from lxml import etree
 from test.test_descrtut import defaultdict
 from django.contrib.databrowse.plugins import objects
 
@@ -142,17 +141,6 @@ def joinResult(field, lst):
     return r
 
     
-def addTasks(process):
-    tree = etree.parse(process)
-    root = tree.getroot()
-    
-    print(etree.tostring(root, pretty_print=True))
-    
-def processStuff():
-    tree = etree.parse("Video.bpmn")
-    processes = tree.findall('{http://www.omg.org/spec/BPMN/20100524/MODEL}process')  
-    process = processes[0]
-    print process.attrib['name']
 
 def aggregateData(data,field): 
     ret = []

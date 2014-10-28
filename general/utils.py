@@ -12,7 +12,7 @@ from django.utils.timezone import is_aware
 from django.core.urlresolvers import reverse
 import requests
 from requests.auth import HTTPBasicAuth
-from lxml import etree
+# from lxml import etree
 
 from general.models import Data, TaskInstance, ProcessActiviti, UserProfile
 import crowdcomputer
@@ -664,33 +664,33 @@ def copyReqParameter(request):
     return '?%s' % query_dict.urlencode()
 
 
-def receiveTask(name):
-    '''receive_skeleton="<receiveTask id=\"{taskname}-receive\" name=\"Receive Task\"></receiveTask>"'''
-    attrib = {}
-    attrib['id'] = name + '-receive'
-    attrib['name'] = 'Receive Task'
-
-    obj = etree.Element("receiveTask", attrib=attrib)
-    log.debug("receive task " + str(obj))
-    return obj
-
-
-def fixSF(sequence, name, total):
-    ''' <sequenceFlow id="flow2" sourceRef="servicetask1" targetRef="endevent1"></sequenceFlow>'''
-    #   A->B becomes A->C
-    log.debug("sequence is : " + sequence.attrib['sourceRef'] + " " + sequence.attrib['targetRef'])
-    temp_target = sequence.attrib['targetRef']
-    log.debug("temp_target " + temp_target)
-    sequence.attrib['targetRef'] = name
-    attrib = {}
-    attrib['id'] = "flow" + str(total + 10000)
-    attrib['sourceRef'] = name
-    attrib['targetRef'] = temp_target
-    log.debug(temp_target)
-    #    create C->B
-    obj = etree.Element("sequenceFlow", attrib=attrib)
-    log.debug("result is " + obj.attrib['sourceRef'] + " " + obj.attrib['targetRef'])
-    return obj
+# def receiveTask(name):
+#     '''receive_skeleton="<receiveTask id=\"{taskname}-receive\" name=\"Receive Task\"></receiveTask>"'''
+#     attrib = {}
+#     attrib['id'] = name + '-receive'
+#     attrib['name'] = 'Receive Task'
+#
+#     obj = etree.Element("receiveTask", attrib=attrib)
+#     log.debug("receive task " + str(obj))
+#     return obj
+#
+#
+# def fixSF(sequence, name, total):
+#     ''' <sequenceFlow id="flow2" sourceRef="servicetask1" targetRef="endevent1"></sequenceFlow>'''
+#     #   A->B becomes A->C
+#     log.debug("sequence is : " + sequence.attrib['sourceRef'] + " " + sequence.attrib['targetRef'])
+#     temp_target = sequence.attrib['targetRef']
+#     log.debug("temp_target " + temp_target)
+#     sequence.attrib['targetRef'] = name
+#     attrib = {}
+#     attrib['id'] = "flow" + str(total + 10000)
+#     attrib['sourceRef'] = name
+#     attrib['targetRef'] = temp_target
+#     log.debug(temp_target)
+#     #    create C->B
+#     obj = etree.Element("sequenceFlow", attrib=attrib)
+#     log.debug("result is " + obj.attrib['sourceRef'] + " " + obj.attrib['targetRef'])
+#     return obj
 
 
 def createObject(name, value):

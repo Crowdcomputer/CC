@@ -10,7 +10,6 @@ from django.template import RequestContext
 from django.views.decorators.csrf import csrf_protect
 from general.forms import UserForm, LoginForm
 from general.models import UserProfile
-from lxml import objectify
 from rest_framework.authtoken.models import Token
 import json
 import logging
@@ -45,15 +44,16 @@ def GeoLoc(request):
 @login_required
 #this is a test for finding information from geo loc and retrive the user position.
 def AddGeoLoc(request):
-    user_profile = request.user.userprofile
-    url_s = 'http://ws.geonames.org/extendedFindNearby?lat=%s&lng=%s' % (user_profile.latitude, user_profile.longitude)
-    log.debug(url_s)
-    url = urllib2.urlopen(url_s).read()
-    
-    root = objectify.fromstring(url)
-    for geo in root.geoname:
-        log.debug('geoname %s ' % (geo.name))
-#        log.debug(geo.name)
+#     FIXME: removed
+#     user_profile = request.user.userprofile
+#     url_s = 'http://ws.geonames.org/extendedFindNearby?lat=%s&lng=%s' % (user_profile.latitude, user_profile.longitude)
+#     log.debug(url_s)
+#     url = urllib2.urlopen(url_s).read()
+#
+#     root = objectify.fromstring(url)
+#     for geo in root.geoname:
+#         log.debug('geoname %s ' % (geo.name))
+# #        log.debug(geo.name)
     return redirect(reverse('home'))
 
 #create the json answer when updating via post the location
