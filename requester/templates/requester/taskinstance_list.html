@@ -41,8 +41,6 @@
                     <td>{{ taskinstance.input_data.value|jsonify }}</td>
                     <td>{{ taskinstance.output_data.value|jsonify }}</td>
                     <td>
-                        <a href='{% url 'r-taskinstance-validate' taskinstance.pk %}' class='btn btn-mini'
-                               title='go to validation page'><i class='icon-list'></i></a>
                         {% if "validation"  not in taskinstance.parameters %}
                             <span class="badge badge-warning">?</span>
                             <a href='{% url "r-taskinstance-validate" taskinstance.pk %}' class='btn btn-mini'
