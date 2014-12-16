@@ -20,6 +20,10 @@ from rest_framework import viewsets
 
 
 
+
+
+
+
 # ViewSets define the view behavior.
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, permission_classes, link
@@ -31,7 +35,7 @@ from rest_framework.views import APIView
 from api.exceptions import NotEnoughMoney
 from api.serializers import TaskSerializer, TaskInstanceSerializer
 from crowdcomputer import settings
-from general.models import Task, TaskInstance, Data, Process, Reward
+from general.models import Task, TaskInstance, Data, Process
 from general.tasks import signal, triggerReceiver
 from general.utils import createObject, startProcessTactic, startProcess, checkIfFinished, getResults, rewardUsers
 from restapi.permissions import IsOwnerOrGoOut
@@ -64,10 +68,10 @@ def get_instance_worker(pk_instance, worker):
 # log.debug(request.DATA)
 # crowd_user = CrowdUserSerializer(data=request.DATA)
 # log.debug(crowd_user.is_valid())
-#         if crowd_user.is_valid():
-#             try:
-#                 log.debug("%s %s" % (type(crowd_user.data), crowd_user.data))
-#                 log.debug(crowd_user.data['username'])
+# if crowd_user.is_valid():
+# try:
+# log.debug("%s %s" % (type(crowd_user.data), crowd_user.data))
+# log.debug(crowd_user.data['username'])
 #                 if len(User.objects.all().filter(username=crowd_user.data['username'])) == 0:
 #                     user = User(username=crowd_user.data['username'], password=crowd_user.data['password'],
 #                                 email=crowd_user.data['email'])
@@ -134,12 +138,18 @@ class TaskView(viewsets.ModelViewSet):
             variables = []
             variables.append(createObject('processId', task.process.pk))
             app = task.process.application
-
+            log.debug(request.DATA)
+            if 'data' in request.DATA:
+                d = json.loads(request.DATA['data'])
+            else:
+                d = []
             variables.append(createObject('app_token', app.token))
             owner = task.owner
             token, created = Token.objects.get_or_create(user=owner)
             variables.append(createObject('user_token', token.key))
-            variables.append(createObject('data', []))
+            variables.append(createObject('data', d))
+            task.parameters['input'] = d
+            task.save()
             variables.append(createObject('taskId', task.id))
             # variables.append(createObject('task_instance', taskinstance.pk))
             data['variables'] = variables
@@ -164,6 +174,7 @@ class TaskView(viewsets.ModelViewSet):
         task = get_task(pk, request.user)
         task.finish()
         res = {}
+        logging.debug("task is finished")
         # trigger the receive event for this task.
         checkIfFinished(task)
         results = getResults(task)
@@ -232,6 +243,10 @@ class InstanceView(viewsets.ModelViewSet):
         #     trick for the JSONFields
 
         input = self.request.DATA['input'] if 'input' in self.request.DATA else None
+        logging.debug("input %s", input)
+        if not input or input=='[]':
+            input = task.parameters['input'] if 'input' in task.parameters else None
+        logging.debug("input %s", input)
         pars = self.request.DATA['parameters'] if 'parameters' in self.request.DATA else None
 
         log.debug("input %s", input)

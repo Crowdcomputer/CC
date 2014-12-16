@@ -41,7 +41,7 @@ def getResults(task):
             if instance.output_data:
                 if 'validation' in instance.parameters and instance.parameters['validation']:
                     log.debug("valid")
-                    value = instance.output_data.value
+                    value = json.loads(instance.output_data.value)
                     ret.append(value)
                 else:
                     log.debug("data of %s: [%s,%s] is not valid", instance.executor, instance.output_data,

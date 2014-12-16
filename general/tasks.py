@@ -24,11 +24,12 @@ def createObject(name, value):
     ret['value'] = value
     return ret
 
+
 @task()
 def sendEmail(sender, title, html, email):
     html += "<br/> <a href=\"" + settings.CM_Location + "\">Crowd Computer</a>"
     # msg = EmailMultiAlternatives(title, html,sender + ' (CrowdComputer)', [], [email])
-    #msg.attach_alternative(html, "text/html")
+    # msg.attach_alternative(html, "text/html")
     log.debug("Mail %s %s %s %s" % (str(sender), title, html, email))
     #msg.send()
 
@@ -44,7 +45,7 @@ def sendEmail(sender, title, html, email):
 
 
 # #FIXME: duplicated method, it's the only way i found.
-#def getResults(task):
+# def getResults(task):
 #    ret=[]
 #    for instance in task.taskinstance_set.all():
 #        if hasattr(instance, 'output_data'):
@@ -96,7 +97,7 @@ def sendEmail(sender, title, html, email):
 def triggerReceiver(task, results):
     #    if task.status=='FN':
     #        return
-    task.parameters['result']=results
+    task.parameters['result'] = results
     task.save()
     log.info("ok here we go")
     # log.debug("receive  " + task.taskactiviti.receive)
@@ -109,6 +110,7 @@ def triggerReceiver(task, results):
     data['action'] = 'signal'
     variables = []
     variables.append(createObject(task.parameters["data_name"], results))
+    data['variables'] = variables
     dumps = json.dumps(data)
     log.debug("dumps data %s", dumps)
     response = requests.put(url, data=dumps, auth=HTTPBasicAuth(username, password))
@@ -133,16 +135,15 @@ def triggerReceiverInstance(taskinstance):
     variables.append(createObject("taskId", taskinstance.task.id))
     variables.append(createObject("taskInstanceId", taskinstance.id))
 
-
-    data['variables']=variables
+    data['variables'] = variables
     dumps = json.dumps(data)
-    log.debug("%s %s"%(url, dumps))
+    log.debug("%s %s" % (url, dumps))
     response = requests.put(url, data=dumps, auth=HTTPBasicAuth(username, password))
     log.debug(response.text)
 
 
 @task()
-def signal(id_process,task_id, taskinstance_id):
+def signal(id_process, task_id, taskinstance_id):
     '''
     generic signal of procesese
     :param id_process:
@@ -159,19 +160,20 @@ def signal(id_process,task_id, taskinstance_id):
     variables.append(createObject("taskId", task_id))
     variables.append(createObject("taskInstanceId", taskinstance_id))
 
-
-    datapick['variables']=variables
+    datapick['variables'] = variables
     dumps = json.dumps(datapick)
-    log.debug("signaling %s %s"%(url,dumps));
+    log.debug("signaling %s %s" % (url, dumps));
     response_signal = requests.put(url, data=dumps, auth=HTTPBasicAuth(username, password))
     try:
         resp_j = response_signal.json()
     except:
         return 0
-    log.debug("signal response %s",resp_j)
+    log.debug("signal response %s", resp_j)
     if "statusCode" in resp_j:
-        log.error("error %s",resp_j)
+        log.error("error %s", resp_j)
     return 0
+
+
 # @task()
 # def deleteInstance(process):
 # #    if task.status=='FN':
@@ -184,7 +186,7 @@ def signal(id_process,task_id, taskinstance_id):
 #     log.debug(response.text)
 
 @task()
-def queryProcessForPick(task,user,):
+def queryProcessForPick(task, user, ):
     # FIXME: critical, this takes the first, there's no atomicti.
     username = settings.ACTIVITI_USERNAME
     password = settings.ACTIVITI_PASSWORD
@@ -199,26 +201,26 @@ def queryProcessForPick(task,user,):
     response = requests.post(url, data=dumps, auth=HTTPBasicAuth(username, password))
     responsedata = response.json()['data']
     # if two users joins at the same time we are screwed
-    if len(responsedata)>0:
+    if len(responsedata) > 0:
         url = settings.ACTIVITI_URL + "/runtime/executions/" + str(responsedata[0]['id'])
 
         datapick = {}
         datapick['action'] = 'signal'
         variables = []
-        variables.append(createObject("executor_id",user.pk))
-        variables.append(createObject("data","[]"))
-        datapick['variables']=variables
+        variables.append(createObject("executor_id", user.pk))
+        variables.append(createObject("data", "[]"))
+        datapick['variables'] = variables
         # variables.append()
         # datapick[] = task.parameters['receivers'] + "-pick"
         dumps = json.dumps(datapick)
-        log.debug("signaling %s %s"%(url,datapick));
+        log.debug("signaling %s %s" % (url, datapick));
 
         response_signal = requests.put(url, data=dumps, auth=HTTPBasicAuth(username, password))
         resp_j = response_signal.json()
-        log.debug("signaling  response %s",resp_j)
+        log.debug("signaling  response %s", resp_j)
         if "statusCode" in resp_j:
             # one option is too recall this function.. but there may be aloop problem..
-            log.error("error %s",resp_j)
+            log.error("error %s", resp_j)
             return False
         return True
     return False
