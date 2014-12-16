@@ -53,7 +53,7 @@ class IsFromApp(permissions.BasePermission):
 #            log.debug('safe method')
             return True
         #FIXME remove app
-        apptoken = Application.objects.get(name="bpmn")
+        apptoken = Application.objects.get(name="bpmn").token
         log.debug("apptoken " + apptoken)
         if apptoken is None:
             log.debug('apptoken is none')
